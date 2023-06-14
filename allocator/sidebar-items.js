@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["AllocError"],"struct":["BitmapPageAllocator","BuddyByteAllocator","SlabByteAllocator"],"trait":["BaseAllocator","ByteAllocator","IdAllocator","PageAllocator"],"type":["AllocResult"]};

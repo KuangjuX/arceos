@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["GIC_MAX_IRQ","PPI_RANGE","SGI_RANGE","SPI_RANGE"],"enum":["TriggerMode"],"mod":["gic_v2"]};

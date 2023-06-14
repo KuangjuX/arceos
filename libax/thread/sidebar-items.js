@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["current","exit","set_priority","sleep","sleep_until","spawn","yield_now"],"struct":["Builder","JoinHandle","ThreadId"]};
