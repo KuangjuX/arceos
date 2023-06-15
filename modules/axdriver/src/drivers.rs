@@ -80,6 +80,7 @@ cfg_if::cfg_if! {
                 ) -> Option<crate::AxDeviceEnum> {
                     use crate::ixgbe::IxgbehalImpl;
                     use driver_net::ixgbe::{INTEL_82599, INTEL_VEND, IxgbeNic};
+                    info!("dev vendor_id: {}, dev device_id: {}", dev_info.vendor_id, dev_info.device_id);
                     if dev_info.vendor_id == INTEL_VEND && dev_info.device_id == INTEL_82599 {
                         // Intel 10Gb Network
                         info!("ixgbe PCI device found at {:?}", bdf);

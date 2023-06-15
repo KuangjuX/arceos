@@ -12,7 +12,7 @@ macro_rules! register_net_driver {
 
 macro_rules! register_block_driver {
     ($driver_type:ty, $device_type:ty) => {
-        /// The unified type of the NIC devices.
+        /// The unified type of the block devices.
         #[cfg(not(feature = "dyn"))]
         pub type AxBlockDevice = $device_type;
     };
@@ -20,7 +20,7 @@ macro_rules! register_block_driver {
 
 macro_rules! register_display_driver {
     ($driver_type:ty, $device_type:ty) => {
-        /// The unified type of the NIC devices.
+        /// The unified type of the display devices.
         #[cfg(not(feature = "dyn"))]
         pub type AxDisplayDevice = $device_type;
     };
@@ -53,6 +53,28 @@ macro_rules! for_each_drivers {
         {
             type $drv_type = crate::drivers::RamDiskDriver;
             $code
+        }
+
+        #[cfg(net_dev = "ixgbe")]
+        {
+            type $drv_type = crate::ixgbe::IxgbeDriver;
+            $code
+        }
+    }};
+}
+
+/// Register an interrupt handler for the device.
+#[macro_export]
+macro_rules! register_interrupt_handler {
+    ($dev:ident, $handler:block) => {{
+        use axhal::irq::{register_handler, IrqHandler};
+        if let Some(irq_num) = $dev.get_irq_num() {
+            info!(
+                "Registered handler for device {} with irq num {}",
+                $dev.device_name(),
+                irq_num
+            );
+            register_handler(irq_num, || $handler);
         }
     }};
 }

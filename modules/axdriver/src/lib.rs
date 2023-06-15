@@ -130,6 +130,7 @@ impl AllDevices {
             }
         });
 
+        info!("probe bus devices");
         self.probe_bus_devices();
     }
 
