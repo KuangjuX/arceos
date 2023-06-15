@@ -18,6 +18,7 @@ smp = ["axhal/smp", "spinlock/smp"]
 
 fs = ["alloc", "paging", "axdriver/virtio-blk", "dep:axfs"] # TODO: remove "paging"
 net = ["alloc", "paging", "axdriver/virtio-net", "dep:axnet"]
+ixgbe_net = ["alloc", "paging", "axdriver/ixgbe", "dep:axnet"]
 display = ["alloc", "paging", "axdriver/virtio-gpu", "dep:axdisplay"]
 
 default = ["axtask?/default"]

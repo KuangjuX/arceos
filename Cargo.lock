@@ -655,6 +655,8 @@ name = "driver_net"
 version = "0.1.0"
 dependencies = [
  "driver_common",
+ "ixgbe-driver",
+ "log",
  "spin 0.9.8",
 ]
 
@@ -898,6 +900,21 @@ name = "itoa"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "453ad9f582a441959e5f0d088b02ce04cfe8d51a8eaf077f12ac6d3e94164ca6"
+
+[[package]]
+name = "ixgbe-driver"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "spinlock",
+]
+
+[[package]]
+name = "ixgbe_test"
+version = "0.1.0"
+dependencies = [
+ "libax",
+]
 
 [[package]]
 name = "js-sys"

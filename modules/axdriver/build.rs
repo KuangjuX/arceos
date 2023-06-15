@@ -1,4 +1,4 @@
-const NET_DEV_FEATURES: &[&str] = &["virtio-net"];
+const NET_DEV_FEATURES: &[&str] = &["ixgbe", "virtio-net"];
 const BLOCK_DEV_FEATURES: &[&str] = &["ramdisk", "virtio-blk"];
 const DISPLAY_DEV_FEATURES: &[&str] = &["virtio-gpu"];
 
@@ -36,6 +36,7 @@ fn main() {
         let mut selected = false;
         for feat in feat_list {
             if has_feature(feat) {
+                println!("Using {} device: {}", dev_kind, feat);
                 enable_cfg(&format!("{dev_kind}_dev"), feat);
                 selected = true;
                 if !is_dyn {
@@ -44,6 +45,10 @@ fn main() {
             }
         }
         if !is_dyn && !selected {
+            println!(
+                "cargo:warning=No {} device is selected, using dummy device",
+                dev_kind
+            );
             enable_cfg(&format!("{dev_kind}_dev"), "dummy");
         }
     }

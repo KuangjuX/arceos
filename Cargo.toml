@@ -11,6 +11,7 @@ members = [
     "apps/net/httpclient",
     "apps/net/httpserver",
     "apps/net/udpserver",
+    "apps/net/ixgbe_test",
     "apps/task/parallel",
     "apps/task/sleep",
     "apps/task/yield",
@@ -48,6 +49,7 @@ members = [
     "crates/spinlock",
     "crates/timer_list",
     "crates/tuple_for_each",
+    "crates/ixgbe-driver",
 
     "modules/axalloc",
     "modules/axconfig",

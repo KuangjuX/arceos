@@ -66,3 +66,53 @@ cfg_if::cfg_if! {
         }
     }
 }
+
+cfg_if::cfg_if! {
+    if #[cfg(net_dev = "ixgbe")] {
+        use crate::ixgbe::IxgbehalImpl;
+        pub struct IxgbeDriver;
+        register_net_driver!(IxgbeDriver, driver_net::ixgbe::IxgbeNic<IxgbehalImpl>);
+        impl DriverProbe for IxgbeDriver {
+            fn probe_pci(
+                    root: &mut driver_pci::PciRoot,
+                    bdf: driver_pci::DeviceFunction,
+                    dev_info: &driver_pci::DeviceFunctionInfo,
+                ) -> Option<crate::AxDeviceEnum> {
+                    use crate::ixgbe::IxgbehalImpl;
+                    use driver_net::ixgbe::{INTEL_82599, INTEL_VEND, IxgbeNic};
+                    if dev_info.vendor_id == INTEL_VEND && dev_info.device_id == INTEL_82599 {
+                        // Intel 10Gb Network
+                        info!("ixgbe PCI device found at {:?}", bdf);
+
+                        // Initialize the device
+                        // These can be changed according to the requirments specified in the ixgbe init function.
+                        const RX_DESCS: u16 = 8;
+                        const TX_DESCS: u16 = 8;
+                        let bar_info = root.bar_info(bdf, 0).unwrap();
+                        match bar_info {
+                            driver_pci::BarInfo::Memory {
+                                address_type: _addr_type,
+                                prefetchable: _prefetchable,
+                                address,
+                                size,
+                            } => {
+                                let ixgbe_nic = IxgbeNic::<IxgbehalImpl>::init(
+                                    address as usize,
+                                    size as usize,
+                                    RX_DESCS,
+                                    TX_DESCS,
+                                )
+                                .expect("failed to initialize ixgbe device");
+                                return Some(AxDeviceEnum::from_net(ixgbe_nic));
+                            }
+                            driver_pci::BarInfo::IO { .. } => {
+                                error!("ixgbe: BAR0 is of I/O type");
+                                return None;
+                            }
+                        }
+                    }
+                    None
+            }
+        }
+    }
+}

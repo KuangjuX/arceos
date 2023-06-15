@@ -4,7 +4,12 @@
 #![feature(const_mut_refs)]
 #![feature(const_slice_from_raw_parts_mut)]
 
+#[cfg(feature = "ixgbe")]
+pub mod ixgbe;
 mod net_buf;
+
+#[macro_use]
+extern crate log;
 
 #[doc(no_inline)]
 pub use driver_common::{BaseDriverOps, DevError, DevResult, DeviceType};
