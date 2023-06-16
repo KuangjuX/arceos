@@ -30,13 +30,6 @@ unsafe impl IxgbeHal for IxgbehalImpl {
         virt_to_phys((vaddr.as_ptr() as usize).into()).into()
     }
 
-    // unsafe fn share(buffer: NonNull<[u8]>, _direction: BufferDirection) -> PhysAddr {
-    //     let vaddr = buffer.as_ptr() as *mut u8 as usize;
-    //     virt_to_phys(vaddr.into()).into()
-    // }
-
-    // unsafe fn unshare(_paddr: PhysAddr, _buffer: NonNull<[u8]>, _direction: BufferDirection) {}
-
     fn get_tsc_frequency() -> u64 {
         axhal::time::TIMER_FREQUENCY as u64
     }

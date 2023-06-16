@@ -91,22 +91,6 @@ cfg_if::cfg_if! {
                         const RX_DESCS: u16 = 8;
                         const TX_DESCS: u16 = 8;
                         let bar_info = root.bar_info(bdf, 0).unwrap();
-                        for index in 0..6 {
-                            let bar_info = root.bar_info(bdf, index).unwrap();
-                            match bar_info {
-                                driver_pci::BarInfo::Memory {
-                                    address_type: _addr_type,
-                                    prefetchable: _prefetchable,
-                                    address,
-                                    size,
-                                } => {
-                                    info!("BAR{}@addr: {:#x}, vaddr: {:#x}", index, address, phys_to_virt((address as usize).into()));
-                                }
-                                driver_pci::BarInfo::IO { .. } => {
-                                    info!("BAR{} is of I/O type", index);
-                                }
-                            }
-                        }
                         match bar_info {
                             driver_pci::BarInfo::Memory {
                                 address_type: _addr_type,
@@ -114,7 +98,6 @@ cfg_if::cfg_if! {
                                 address,
                                 size,
                             } => {
-                                info!("addr: {:#x}, vaddr: {:#x}", address, phys_to_virt((address as usize).into()));
                                 let ixgbe_nic = IxgbeNic::<IxgbehalImpl>::init(
                                     // address as usize,
                                     phys_to_virt((address as usize).into()).into(),
