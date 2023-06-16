@@ -119,6 +119,5 @@ impl AllDevices {
                 }
             }
         }
-        info!("PCI probing finished.");
     }
 }

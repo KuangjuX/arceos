@@ -46,5 +46,7 @@ pub fn init_network(mut net_devs: AxDeviceContainer<AxNetDevice>) {
 
     let dev = net_devs.take_one().expect("No NIC device found!");
     info!("  use NIC 0: {:?}", dev.device_name());
-    net_impl::init(dev);
+
+    // TODO: ixgbe not init net stack.
+    // net_impl::init(dev);
 }
