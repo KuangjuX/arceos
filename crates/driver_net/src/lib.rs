@@ -19,6 +19,16 @@ pub use self::net_buf::{NetBuffer, NetBufferBox, NetBufferPool};
 /// The ethernet address of the NIC (MAC address).
 pub struct EthernetAddress(pub [u8; 6]);
 
+impl core::fmt::Display for EthernetAddress {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(
+            f,
+            "{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}",
+            self.0[0], self.0[1], self.0[2], self.0[3], self.0[4], self.0[5],
+        )
+    }
+}
+
 /// Operations that require a network device (NIC) driver to implement.
 ///
 /// `'a` indicates the lifetime of the network buffers.

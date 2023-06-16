@@ -58,6 +58,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "arceos-generator"
+version = "0.1.0"
+dependencies = [
+ "libax",
+]
+
+[[package]]
 name = "arceos-helloworld"
 version = "0.1.0"
 dependencies = [
@@ -913,13 +920,6 @@ version = "0.1.0"
 dependencies = [
  "log",
  "spinlock",
-]
-
-[[package]]
-name = "ixgbe_test"
-version = "0.1.0"
-dependencies = [
- "libax",
 ]
 
 [[package]]

@@ -11,7 +11,7 @@ members = [
     "apps/net/httpclient",
     "apps/net/httpserver",
     "apps/net/udpserver",
-    "apps/net/ixgbe_test",
+    "apps/net/generator",
     "apps/task/parallel",
     "apps/task/sleep",
     "apps/task/yield",

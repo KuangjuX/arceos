@@ -33,12 +33,16 @@ cfg_if::cfg_if! {
     }
 }
 
+mod bare;
+
 pub use self::net_impl::resolve_socket_addr;
 pub use self::net_impl::TcpSocket;
 pub use self::net_impl::UdpSocket;
 pub use smoltcp::wire::{IpAddress as IpAddr, IpEndpoint as SocketAddr, Ipv4Address as Ipv4Addr};
 
 use axdriver::{prelude::*, AxDeviceContainer};
+
+pub use bare::get_mac_addr;
 
 /// Initializes the network subsystem by NIC devices.
 pub fn init_network(mut net_devs: AxDeviceContainer<AxNetDevice>) {
@@ -49,4 +53,5 @@ pub fn init_network(mut net_devs: AxDeviceContainer<AxNetDevice>) {
 
     // TODO: ixgbe not init net stack.
     // net_impl::init(dev);
+    bare::init(dev);
 }
