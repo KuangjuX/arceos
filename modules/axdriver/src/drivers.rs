@@ -13,6 +13,8 @@ use driver_pci::{DeviceFunction, DeviceFunctionInfo, PciRoot};
 
 pub use super::dummy::*;
 
+use axhal::mem::phys_to_virt;
+
 pub trait DriverProbe {
     fn probe_global() -> Option<AxDeviceEnum> {
         None
@@ -80,7 +82,6 @@ cfg_if::cfg_if! {
                 ) -> Option<crate::AxDeviceEnum> {
                     use crate::ixgbe::IxgbehalImpl;
                     use driver_net::ixgbe::{INTEL_82599, INTEL_VEND, IxgbeNic};
-                    info!("dev vendor_id: {}, dev device_id: {}", dev_info.vendor_id, dev_info.device_id);
                     if dev_info.vendor_id == INTEL_VEND && dev_info.device_id == INTEL_82599 {
                         // Intel 10Gb Network
                         info!("ixgbe PCI device found at {:?}", bdf);
@@ -90,6 +91,22 @@ cfg_if::cfg_if! {
                         const RX_DESCS: u16 = 8;
                         const TX_DESCS: u16 = 8;
                         let bar_info = root.bar_info(bdf, 0).unwrap();
+                        for index in 0..6 {
+                            let bar_info = root.bar_info(bdf, index).unwrap();
+                            match bar_info {
+                                driver_pci::BarInfo::Memory {
+                                    address_type: _addr_type,
+                                    prefetchable: _prefetchable,
+                                    address,
+                                    size,
+                                } => {
+                                    info!("BAR{}@addr: {:#x}, vaddr: {:#x}", index, address, phys_to_virt((address as usize).into()));
+                                }
+                                driver_pci::BarInfo::IO { .. } => {
+                                    info!("BAR{} is of I/O type", index);
+                                }
+                            }
+                        }
                         match bar_info {
                             driver_pci::BarInfo::Memory {
                                 address_type: _addr_type,
@@ -97,8 +114,10 @@ cfg_if::cfg_if! {
                                 address,
                                 size,
                             } => {
+                                info!("addr: {:#x}, vaddr: {:#x}", address, phys_to_virt((address as usize).into()));
                                 let ixgbe_nic = IxgbeNic::<IxgbehalImpl>::init(
-                                    address as usize,
+                                    // address as usize,
+                                    phys_to_virt((address as usize).into()).into(),
                                     size as usize,
                                     RX_DESCS,
                                     TX_DESCS,

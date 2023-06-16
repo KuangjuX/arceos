@@ -119,6 +119,7 @@ impl AllDevices {
 
     /// Probes all supported devices.
     fn probe(&mut self) {
+        info!("probe global devices");
         for_each_drivers!(type Driver, {
             if let Some(dev) = Driver::probe_global() {
                 info!(
