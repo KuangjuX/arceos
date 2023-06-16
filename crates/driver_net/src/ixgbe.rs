@@ -24,7 +24,6 @@ impl<H: IxgbeHal> IxgbeNic<H> {
         let inner =
             IxgbeDevice::<H>::init(base, len, num_rx_queues, num_tx_queues).map_err(|err| {
                 error!("Failed to initialize ixgbe device: {:?}", err);
-                info!("Failed to initialize ixgbe device: {:?}", err);
                 DevError::BadState
             })?;
         Ok(Self { inner })

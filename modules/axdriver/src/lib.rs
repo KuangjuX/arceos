@@ -155,6 +155,8 @@ pub fn init_drivers() -> AllDevices {
     let mut all_devs = AllDevices::default();
     all_devs.probe();
 
+    info!("device probing finished.");
+
     #[cfg(feature = "net")]
     {
         debug!("number of NICs: {}", all_devs.net.len());

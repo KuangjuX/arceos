@@ -88,6 +88,9 @@ build: $(OUT_DIR) $(OUT_BIN)
 disasm:
 	$(OBJDUMP) $(OUT_ELF) | less
 
+asm:
+	$(OBJDUMP) $(OUT_ELF) > $(OUT_ELF).S
+
 run: build justrun
 
 justrun:
