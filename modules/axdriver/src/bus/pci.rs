@@ -94,8 +94,8 @@ impl AllDevices {
             .map(|range| PciRangeAllocator::new(range.0 as u64, range.1 as u64));
 
         for bus in 0..=axconfig::PCI_BUS_END as u8 {
+            // info!("probe bus: {}", bus);
             for (bdf, dev_info) in root.enumerate_bus(bus) {
-                // info!("PCI {}: {}", bdf, dev_info);
                 if dev_info.header_type != HeaderType::Standard {
                     continue;
                 }
@@ -119,5 +119,6 @@ impl AllDevices {
                 }
             }
         }
+        info!("PCI probing finished.");
     }
 }
