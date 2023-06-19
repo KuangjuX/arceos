@@ -1,6 +1,8 @@
 #![no_std]
 #![no_main]
 
+use alloc::collections::VecDeque;
+
 #[macro_use]
 extern crate libax;
 extern crate alloc;
@@ -37,5 +39,9 @@ fn main() {
 
     let mac_addr = libax::net::get_mac_addr();
     libax::info!("mac address: {}", mac_addr);
+
+    // src MAC must be MAC of the device(spoof check of PF)
     pkt_data[6..12].copy_from_slice(&mac_addr.0);
+
+    // let mut buffer: VecDeque<>
 }
