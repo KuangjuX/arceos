@@ -10,9 +10,15 @@ mod net_buf;
 
 #[macro_use]
 extern crate log;
+extern crate alloc;
 
+use core::marker::PhantomData;
+
+use alloc::{boxed::Box, vec::Vec};
 #[doc(no_inline)]
 pub use driver_common::{BaseDriverOps, DevError, DevResult, DeviceType};
+pub use ixgbe_driver::DeviceStats;
+use ixgbe_driver::{IxgbeHal, RxBuffer};
 
 pub use self::net_buf::{NetBuffer, NetBufferBox, NetBufferPool};
 
@@ -80,4 +86,28 @@ pub trait NetDriverOps<'a>: BaseDriverOps {
     /// If currently no incomming packets, returns an error with type
     /// [`DevError::Again`].
     fn receive(&mut self) -> DevResult<NetBufferBox<'a>>;
+
+    fn recv(&mut self) -> DevResult<Box<dyn RxBuf>>;
+
+    /// Reset network card states.
+    fn reset_stats(&mut self);
+
+    /// Read network card states.
+    fn read_stats(&self) -> DeviceStats;
+}
+
+pub struct RxBufWrapper<H: IxgbeHal> {
+    inner: RxBuffer<H>,
+    // _marker: PhantomData<&'a H>,
+}
+
+pub trait RxBuf {
+    /// Returns all data in the buffer, including both the header and the pakcet.
+    fn as_bytes(&self) -> &[u8];
+}
+
+impl<H: IxgbeHal> RxBuf for RxBufWrapper<H> {
+    fn as_bytes(&self) -> &[u8] {
+        self.inner.packet().as_bytes()
+    }
 }

@@ -1,8 +1,11 @@
 use core::cell::RefCell;
 
+use alloc::boxed::Box;
 use axdriver::AxNetDevice;
+use axerrno::{AxError, AxResult};
 use axsync::Mutex;
-use driver_net::{BaseDriverOps, EthernetAddress, NetDriverOps};
+pub use driver_net::DeviceStats;
+use driver_net::{BaseDriverOps, DevError, EthernetAddress, NetDriverOps, RxBuf};
 use lazy_init::LazyInit;
 
 static BARE_NIC: LazyInit<BareNic> = LazyInit::new();
@@ -23,6 +26,24 @@ impl BareNic {
     pub fn get_mac_addr(&self) -> EthernetAddress {
         self.inner.lock().borrow().mac_address()
     }
+
+    pub fn reset_stats(&self) {
+        self.inner.lock().borrow_mut().reset_stats()
+    }
+
+    pub fn read_stats(&self) -> DeviceStats {
+        self.inner.lock().borrow().read_stats()
+    }
+
+    pub fn recv(&self) -> AxResult<Box<dyn RxBuf>> {
+        match self.inner.lock().borrow_mut().recv() {
+            Ok(rx_buf) => Ok(rx_buf),
+            Err(err) => match err {
+                DevError::Again => Err(AxError::WouldBlock),
+                _ => panic!("Unexpected error"),
+            },
+        }
+    }
 }
 
 pub fn init(mut net_dev: AxNetDevice) {
@@ -32,4 +53,19 @@ pub fn init(mut net_dev: AxNetDevice) {
 
 pub fn get_mac_addr() -> EthernetAddress {
     BARE_NIC.get_mac_addr()
+}
+
+pub fn reset_stats() {
+    BARE_NIC.reset_stats()
+}
+
+pub fn read_stats() -> DeviceStats {
+    BARE_NIC.read_stats()
+}
+
+pub fn recv() -> AxResult<Box<dyn RxBuf>> {
+    match BARE_NIC.recv() {
+        Ok(rx_buf) => Ok(rx_buf),
+        Err(err) => Err(err),
+    }
 }

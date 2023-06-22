@@ -30,7 +30,7 @@ virtio-mmio-regions = []
 # Base physical address of the PCIe ECAM space (should read from ACPI 'MCFG' table).
 pci-ecam-base = "0xf000_0000"
 # End PCI bus number.
-pci-bus-end = "0xff"
+pci-bus-end = "0x7f"
 # PCI device memory ranges (not used on x86).
 pci-ranges = []
 

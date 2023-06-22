@@ -14,6 +14,8 @@
 #![feature(const_trait_impl)]
 #![feature(doc_auto_cfg)]
 
+extern crate alloc;
+
 #[cfg(feature = "block")]
 mod blk;
 #[cfg(feature = "gpu")]

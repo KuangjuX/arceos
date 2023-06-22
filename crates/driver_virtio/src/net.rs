@@ -131,4 +131,16 @@ impl<'a, H: Hal, T: Transport, const QS: usize> NetDriverOps<'a> for VirtIoNetDe
             Err(DevError::Again)
         }
     }
+
+    fn recv(&mut self) -> DevResult<alloc::boxed::Box<dyn driver_net::RxBuf>> {
+        todo!()
+    }
+
+    fn reset_stats(&mut self) {
+        todo!()
+    }
+
+    fn read_stats(&self) -> driver_net::DeviceStats {
+        todo!()
+    }
 }

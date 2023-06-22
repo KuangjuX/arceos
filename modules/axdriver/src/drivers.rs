@@ -73,7 +73,7 @@ cfg_if::cfg_if! {
     if #[cfg(net_dev = "ixgbe")] {
         use crate::ixgbe::IxgbehalImpl;
         pub struct IxgbeDriver;
-        register_net_driver!(IxgbeDriver, driver_net::ixgbe::IxgbeNic<IxgbehalImpl>);
+        register_net_driver!(IxgbeDriver, driver_net::ixgbe::IxgbeNic<IxgbehalImpl, 1>);
         impl DriverProbe for IxgbeDriver {
             fn probe_pci(
                     root: &mut driver_pci::PciRoot,
@@ -88,8 +88,7 @@ cfg_if::cfg_if! {
 
                         // Initialize the device
                         // These can be changed according to the requirments specified in the ixgbe init function.
-                        const RX_DESCS: u16 = 8;
-                        const TX_DESCS: u16 = 8;
+                        const QS: u16 = 1;
                         let bar_info = root.bar_info(bdf, 0).unwrap();
                         match bar_info {
                             driver_pci::BarInfo::Memory {
@@ -98,12 +97,10 @@ cfg_if::cfg_if! {
                                 address,
                                 size,
                             } => {
-                                let ixgbe_nic = IxgbeNic::<IxgbehalImpl>::init(
+                                let ixgbe_nic = IxgbeNic::<IxgbehalImpl, QS>::init(
                                     // address as usize,
                                     phys_to_virt((address as usize).into()).into(),
-                                    size as usize,
-                                    RX_DESCS,
-                                    TX_DESCS,
+                                    size as usize
                                 )
                                 .expect("failed to initialize ixgbe device");
                                 return Some(AxDeviceEnum::from_net(ixgbe_nic));

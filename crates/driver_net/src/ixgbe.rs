@@ -2,35 +2,33 @@ use driver_common::BaseDriverOps;
 use driver_common::DevError;
 use driver_common::DevResult;
 pub use ixgbe_driver::BufferDirection;
+pub use ixgbe_driver::DeviceStats;
 pub use ixgbe_driver::IxgbeDevice;
+use ixgbe_driver::IxgbeError;
 pub use ixgbe_driver::IxgbeHal;
 use ixgbe_driver::NicDevice;
 pub use ixgbe_driver::PhysAddr;
 pub use ixgbe_driver::{INTEL_82599, INTEL_VEND};
 
 use crate::NetDriverOps;
+use crate::RxBufWrapper;
+use alloc::boxed::Box;
 
-pub struct IxgbeNic<H: IxgbeHal> {
+pub struct IxgbeNic<H: IxgbeHal, const QS: u16> {
     inner: IxgbeDevice<H>,
 }
 
-impl<H: IxgbeHal> IxgbeNic<H> {
-    pub fn init(
-        base: usize,
-        len: usize,
-        num_rx_queues: u16,
-        num_tx_queues: u16,
-    ) -> DevResult<Self> {
-        let inner =
-            IxgbeDevice::<H>::init(base, len, num_rx_queues, num_tx_queues).map_err(|err| {
-                error!("Failed to initialize ixgbe device: {:?}", err);
-                DevError::BadState
-            })?;
+impl<H: IxgbeHal, const QS: u16> IxgbeNic<H, QS> {
+    pub fn init(base: usize, len: usize) -> DevResult<Self> {
+        let inner = IxgbeDevice::<H>::init(base, len, QS, QS).map_err(|err| {
+            error!("Failed to initialize ixgbe device: {:?}", err);
+            DevError::BadState
+        })?;
         Ok(Self { inner })
     }
 }
 
-impl<H: IxgbeHal> BaseDriverOps for IxgbeNic<H> {
+impl<H: IxgbeHal, const QS: u16> BaseDriverOps for IxgbeNic<H, QS> {
     fn device_name(&self) -> &str {
         self.inner.get_driver_name()
     }
@@ -40,7 +38,7 @@ impl<H: IxgbeHal> BaseDriverOps for IxgbeNic<H> {
     }
 }
 
-impl<'a, H: IxgbeHal> NetDriverOps<'a> for IxgbeNic<H> {
+impl<'a, H: IxgbeHal + 'static, const QS: u16> NetDriverOps<'a> for IxgbeNic<H, QS> {
     fn mac_address(&self) -> crate::EthernetAddress {
         crate::EthernetAddress(self.inner.get_mac_addr())
     }
@@ -83,5 +81,26 @@ impl<'a, H: IxgbeHal> NetDriverOps<'a> for IxgbeNic<H> {
 
     fn transmit(&mut self, tx_buf: &crate::NetBuffer) -> driver_common::DevResult {
         todo!()
+    }
+
+    fn recv(&mut self) -> DevResult<Box<dyn crate::RxBuf>> {
+        // TODO: configurable param
+        match self.inner.receive(0) {
+            Ok(rx_buf) => Ok(Box::new(RxBufWrapper::<H> { inner: rx_buf })),
+            Err(err) => match err {
+                IxgbeError::NotReady => Err(DevError::Again),
+                _ => panic!("Unexpected err: {:?}", err),
+            },
+        }
+    }
+
+    fn reset_stats(&mut self) {
+        self.inner.reset_stats()
+    }
+
+    fn read_stats(&self) -> ixgbe_driver::DeviceStats {
+        let mut stats = DeviceStats::default();
+        self.inner.read_stats(&mut stats);
+        stats
     }
 }

@@ -12,6 +12,7 @@ members = [
     "apps/net/httpserver",
     "apps/net/udpserver",
     "apps/net/generator",
+    "apps/net/echo",
     "apps/task/parallel",
     "apps/task/sleep",
     "apps/task/yield",
