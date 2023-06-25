@@ -1,8 +1,10 @@
 #![no_std]
 #![no_main]
 
+use core::time::Duration;
+
 use alloc::collections::VecDeque;
-use libax::net::recv;
+use libax::{net::recv, thread};
 
 #[macro_use]
 extern crate libax;
@@ -22,10 +24,7 @@ fn main() {
     let mac_addr = libax::net::get_mac_addr();
     libax::info!("mac addr: {}", mac_addr);
 
-    libax::net::reset_stats();
-
     let stats = libax::net::read_stats();
-    let old_stats = libax::net::read_stats();
 
     libax::info!("stats: {}", stats);
 
@@ -34,10 +33,11 @@ fn main() {
         // echo
         match recv() {
             Ok(buf) => {
-                libax::info!("Received packet:");
                 libax::info!("buf: {:?}", buf.as_bytes())
             }
             _ => {}
         }
+        libax::info!("sleep 5 seconds");
+        thread::sleep(Duration::from_secs(5));
     }
 }

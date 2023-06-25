@@ -44,6 +44,10 @@ impl BareNic {
             },
         }
     }
+
+    pub fn can_recv(&self) -> bool {
+        self.inner.lock().borrow().can_receive();
+    }
 }
 
 pub fn init(mut net_dev: AxNetDevice) {
