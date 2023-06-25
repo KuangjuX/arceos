@@ -45,8 +45,15 @@ impl BareNic {
         }
     }
 
-    pub fn can_recv(&self) -> bool {
-        self.inner.lock().borrow().can_receive();
+    pub fn send(&self, buf: &[u8]) -> AxResult {
+        match self.inner.lock().borrow_mut().send(buf) {
+            Ok(_) => Ok(()),
+            Err(err) => match err {
+                DevError::Again => Err(AxError::WouldBlock),
+                DevError::NoMemory => Err(AxError::NoMemory),
+                _ => panic!("Unexpected error"),
+            },
+        }
     }
 }
 
@@ -68,8 +75,9 @@ pub fn read_stats() -> DeviceStats {
 }
 
 pub fn recv() -> AxResult<Box<dyn RxBuf>> {
-    match BARE_NIC.recv() {
-        Ok(rx_buf) => Ok(rx_buf),
-        Err(err) => Err(err),
-    }
+    BARE_NIC.recv()
+}
+
+pub fn send(buf: &[u8]) -> AxResult {
+    BARE_NIC.send(buf)
 }

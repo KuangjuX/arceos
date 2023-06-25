@@ -136,6 +136,10 @@ impl<'a, H: Hal, T: Transport, const QS: usize> NetDriverOps<'a> for VirtIoNetDe
         todo!()
     }
 
+    fn send(&mut self, tx_buf: &[u8]) -> DevResult {
+        todo!()
+    }
+
     fn reset_stats(&mut self) {
         todo!()
     }

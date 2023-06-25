@@ -12,13 +12,11 @@ mod net_buf;
 extern crate log;
 extern crate alloc;
 
-use core::marker::PhantomData;
-
-use alloc::{boxed::Box, vec::Vec};
+use alloc::boxed::Box;
 #[doc(no_inline)]
 pub use driver_common::{BaseDriverOps, DevError, DevResult, DeviceType};
 pub use ixgbe_driver::DeviceStats;
-use ixgbe_driver::{IxgbeHal, RxBuffer};
+use ixgbe_driver::{IxgbeHal, RxBuffer, TxBuffer};
 
 pub use self::net_buf::{NetBuffer, NetBufferBox, NetBufferPool};
 
@@ -87,7 +85,13 @@ pub trait NetDriverOps<'a>: BaseDriverOps {
     /// [`DevError::Again`].
     fn receive(&mut self) -> DevResult<NetBufferBox<'a>>;
 
+    /// Receive a packet from the network and store in the [`Box<dyn RxBuf>`],
+    /// returns the buffer.
     fn recv(&mut self) -> DevResult<Box<dyn RxBuf>>;
+
+    /// Send a packet to network and write it into buffer,
+    /// returns [`DevResult`].
+    fn send(&mut self, tx_buf: &[u8]) -> DevResult;
 
     /// Reset network card states.
     fn reset_stats(&mut self);
@@ -98,7 +102,10 @@ pub trait NetDriverOps<'a>: BaseDriverOps {
 
 pub struct RxBufWrapper<H: IxgbeHal> {
     inner: RxBuffer<H>,
-    // _marker: PhantomData<&'a H>,
+}
+
+pub struct TxBufWrapper<H: IxgbeHal> {
+    inner: TxBuffer<H>,
 }
 
 pub trait RxBuf {
@@ -109,5 +116,25 @@ pub trait RxBuf {
 impl<H: IxgbeHal> RxBuf for RxBufWrapper<H> {
     fn as_bytes(&self) -> &[u8] {
         self.inner.packet().as_bytes()
+    }
+}
+
+pub trait TxBuf {
+    /// Returns allocated packet buffer data.
+    fn packet(&self) -> &[u8];
+
+    /// Returns allocated mutuable buffer data.
+    fn packet_mut(&mut self) -> &mut [u8];
+}
+
+impl<H: IxgbeHal> TxBuf for TxBufWrapper<H> {
+    /// Returns allocated packet buffer data.
+    fn packet(&self) -> &[u8] {
+        self.packet()
+    }
+
+    /// Returns allocated mutuable buffer data.
+    fn packet_mut(&mut self) -> &mut [u8] {
+        self.packet_mut()
     }
 }

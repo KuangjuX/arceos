@@ -1,3 +1,4 @@
+use alloc::sync::Arc;
 use driver_common::BaseDriverOps;
 use driver_common::DevError;
 use driver_common::DevResult;
@@ -6,8 +7,10 @@ pub use ixgbe_driver::DeviceStats;
 pub use ixgbe_driver::IxgbeDevice;
 use ixgbe_driver::IxgbeError;
 pub use ixgbe_driver::IxgbeHal;
+use ixgbe_driver::Mempool;
 use ixgbe_driver::NicDevice;
 pub use ixgbe_driver::PhysAddr;
+use ixgbe_driver::TxBuffer;
 pub use ixgbe_driver::{INTEL_82599, INTEL_VEND};
 
 use crate::NetDriverOps;
@@ -16,6 +19,7 @@ use alloc::boxed::Box;
 
 pub struct IxgbeNic<H: IxgbeHal, const QS: u16> {
     inner: IxgbeDevice<H>,
+    mempool: Arc<Mempool<H>>,
 }
 
 impl<H: IxgbeHal, const QS: u16> IxgbeNic<H, QS> {
@@ -24,7 +28,10 @@ impl<H: IxgbeHal, const QS: u16> IxgbeNic<H, QS> {
             error!("Failed to initialize ixgbe device: {:?}", err);
             DevError::BadState
         })?;
-        Ok(Self { inner })
+
+        // TODO: Customizable Memory Pool member.
+        let mempool = Mempool::<H>::allocate(2048, 0).unwrap();
+        Ok(Self { inner, mempool })
     }
 }
 
@@ -92,6 +99,25 @@ impl<'a, H: IxgbeHal + 'static, const QS: u16> NetDriverOps<'a> for IxgbeNic<H, 
                 _ => panic!("Unexpected err: {:?}", err),
             },
         }
+    }
+
+    fn send(&mut self, buf: &[u8]) -> DevResult {
+        let len = buf.len();
+        if let Ok(mut tx_buf) = TxBuffer::alloc(&self.mempool, len) {
+            let packet = tx_buf.packet_mut();
+            // TODO: zero copy
+            unsafe {
+                core::ptr::copy(buf.as_ptr(), packet.as_mut_ptr(), len);
+            }
+            match self.inner.send(0, tx_buf) {
+                Ok(_) => return Ok(()),
+                Err(err) => match err {
+                    IxgbeError::QueueFull => return Err(DevError::Again),
+                    _ => panic!("Unexpected err: {:?}", err),
+                },
+            }
+        }
+        Err(DevError::NoMemory)
     }
 
     fn reset_stats(&mut self) {

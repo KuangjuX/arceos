@@ -42,7 +42,7 @@ pub use smoltcp::wire::{IpAddress as IpAddr, IpEndpoint as SocketAddr, Ipv4Addre
 
 use axdriver::{prelude::*, AxDeviceContainer};
 
-pub use bare::{get_mac_addr, read_stats, recv, reset_stats, DeviceStats};
+pub use bare::{get_mac_addr, read_stats, recv, reset_stats, send, DeviceStats};
 
 /// Initializes the network subsystem by NIC devices.
 pub fn init_network(mut net_devs: AxDeviceContainer<AxNetDevice>) {
