@@ -52,6 +52,6 @@ pub fn init_network(mut net_devs: AxDeviceContainer<AxNetDevice>) {
     info!("  use NIC 0: {:?}", dev.device_name());
 
     // TODO: ixgbe not init net stack.
-    // net_impl::init(dev);
-    bare::init(dev);
+    net_impl::init(dev);
+    // bare::init(dev);
 }

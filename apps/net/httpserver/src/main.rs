@@ -19,7 +19,7 @@ use libax::io::{self, prelude::*};
 use libax::net::{IpAddr, TcpListener, TcpStream};
 use libax::thread;
 
-const LOCAL_IP: &str = "10.0.2.15";
+const LOCAL_IP: &str = "10.2.2.2";
 const LOCAL_PORT: u16 = 5555;
 
 macro_rules! header {

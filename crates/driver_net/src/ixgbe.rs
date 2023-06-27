@@ -59,36 +59,32 @@ impl<'a, H: IxgbeHal + 'static, const QS: u16> NetDriverOps<'a> for IxgbeNic<H, 
     }
 
     fn can_receive(&self) -> bool {
-        false
+        self.inner.can_receive(0).unwrap()
     }
 
     fn can_transmit(&self) -> bool {
-        false
+        self.inner.can_send(0).unwrap()
     }
 
-    fn fill_rx_buffers(&mut self, buf_pool: &'a crate::NetBufferPool) -> driver_common::DevResult {
-        todo!()
-    }
+    // fn fill_rx_buffers(&mut self, buf_pool: &'a crate::NetBufferPool) -> DevResult {
+    //     todo!()
+    // }
 
-    fn prepare_tx_buffer(
-        &self,
-        tx_buf: &mut crate::NetBuffer,
-        packet_len: usize,
-    ) -> driver_common::DevResult {
-        todo!()
-    }
+    // fn prepare_tx_buffer(&self, tx_buf: &mut crate::NetBuffer, packet_len: usize) -> DevResult {
+    //     todo!()
+    // }
 
-    fn receive(&mut self) -> driver_common::DevResult<crate::NetBufferBox<'a>> {
-        todo!()
-    }
+    // fn receive(&mut self) -> DevResult<crate::NetBufferBox<'a>> {
+    //     todo!()
+    // }
 
-    fn recycle_rx_buffer(&mut self, rx_buf: crate::NetBufferBox<'a>) -> driver_common::DevResult {
-        todo!()
-    }
+    // fn recycle_rx_buffer(&mut self, rx_buf: crate::NetBufferBox<'a>) -> DevResult {
+    //     todo!()
+    // }
 
-    fn transmit(&mut self, tx_buf: &crate::NetBuffer) -> driver_common::DevResult {
-        todo!()
-    }
+    // fn transmit(&mut self, tx_buf: &crate::NetBuffer) -> DevResult {
+    //     todo!()
+    // }
 
     fn recv(&mut self) -> DevResult<Box<dyn crate::RxBuf>> {
         // TODO: configurable param

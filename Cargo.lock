@@ -926,7 +926,6 @@ name = "ixgbe-driver"
 version = "0.1.0"
 dependencies = [
  "log",
- "spinlock",
 ]
 
 [[package]]

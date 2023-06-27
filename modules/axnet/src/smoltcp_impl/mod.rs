@@ -3,20 +3,22 @@ mod listen_table;
 mod tcp;
 mod udp;
 
-use alloc::{collections::VecDeque, vec};
+use alloc::{boxed::Box, collections::VecDeque, vec};
 use core::cell::RefCell;
 use core::ops::DerefMut;
 
 use axdriver::prelude::*;
 use axhal::time::{current_time_nanos, NANOS_PER_MICROS};
 use axsync::Mutex;
-use driver_net::{DevError, NetBufferBox, NetBufferPool};
+use driver_net::{DevError, NetBufferBox, NetBufferPool, RxBuf};
 use lazy_init::LazyInit;
 use smoltcp::iface::{Config, Interface, SocketHandle, SocketSet};
 use smoltcp::phy::{Device, DeviceCapabilities, Medium, RxToken, TxToken};
 use smoltcp::socket::{self, AnySocket};
 use smoltcp::time::Instant;
-use smoltcp::wire::{EthernetAddress, HardwareAddress, IpAddress, IpCidr};
+use smoltcp::wire::{
+    EthernetAddress, EthernetFrame, HardwareAddress, IpAddress, IpCidr, PrettyPrinter,
+};
 
 use self::listen_table::ListenTable;
 
@@ -24,8 +26,8 @@ pub use self::dns::resolve_socket_addr;
 pub use self::tcp::TcpSocket;
 pub use self::udp::UdpSocket;
 
-const IP: IpAddress = IpAddress::v4(10, 0, 2, 15); // QEMU user networking default IP
-const GATEWAY: IpAddress = IpAddress::v4(10, 0, 2, 2); // QEMU user networking gateway
+const IP: IpAddress = IpAddress::v4(10, 2, 2, 2); // QEMU user networking default IP
+const GATEWAY: IpAddress = IpAddress::v4(10, 2, 2, 1); // QEMU user networking gateway
 const DNS_SEVER: IpAddress = IpAddress::v4(8, 8, 8, 8);
 const IP_PREFIX: u8 = 24;
 
@@ -41,7 +43,7 @@ const LISTEN_QUEUE_SIZE: usize = 512;
 const NET_BUF_LEN: usize = 1526;
 const NET_BUF_POOL_SIZE: usize = 128;
 
-static NET_BUF_POOL: LazyInit<NetBufferPool> = LazyInit::new();
+// static NET_BUF_POOL: LazyInit<NetBufferPool> = LazyInit::new();
 
 static LISTEN_TABLE: LazyInit<ListenTable> = LazyInit::new();
 static SOCKET_SET: LazyInit<SocketSetWrapper> = LazyInit::new();
@@ -49,9 +51,15 @@ static ETH0: LazyInit<InterfaceWrapper> = LazyInit::new();
 
 struct SocketSetWrapper<'a>(Mutex<SocketSet<'a>>);
 
+// struct DeviceWrapper {
+//     inner: RefCell<AxNetDevice>, // use `RefCell` is enough since it's wrapped in `Mutex` in `InterfaceWrapper`.
+//     rx_buf_queue: VecDeque<NetBufferBox<'static>>,
+// }
+
 struct DeviceWrapper {
-    inner: RefCell<AxNetDevice>, // use `RefCell` is enough since it's wrapped in `Mutex` in `InterfaceWrapper`.
-    rx_buf_queue: VecDeque<NetBufferBox<'static>>,
+    // use `RefCell` is enough since it's wrapped in `Mutex` in `InterfaceWrapper`.
+    inner: RefCell<AxNetDevice>,
+    rx_buf_queue: VecDeque<Box<dyn RxBuf>>,
 }
 
 struct InterfaceWrapper {
@@ -60,6 +68,9 @@ struct InterfaceWrapper {
     dev: Mutex<DeviceWrapper>,
     iface: Mutex<Interface>,
 }
+
+unsafe impl Sync for InterfaceWrapper {}
+unsafe impl Send for InterfaceWrapper {}
 
 impl<'a> SocketSetWrapper<'a> {
     fn new() -> Self {
@@ -186,7 +197,7 @@ impl DeviceWrapper {
         F: Fn(&[u8]),
     {
         while self.rx_buf_queue.len() < RX_BUF_QUEUE_SIZE {
-            match self.inner.borrow_mut().receive() {
+            match self.inner.borrow_mut().recv() {
                 Ok(buf) => {
                     f(buf.packet());
                     self.rx_buf_queue.push_back(buf);
@@ -200,7 +211,11 @@ impl DeviceWrapper {
         }
     }
 
-    fn receive(&mut self) -> Option<NetBufferBox<'static>> {
+    // fn receive(&mut self) -> Option<NetBufferBox<'static>> {
+    //     self.rx_buf_queue.pop_front()
+    // }
+
+    fn receive(&mut self) -> Option<Box<dyn RxBuf>> {
         self.rx_buf_queue.pop_front()
     }
 }
@@ -211,7 +226,7 @@ impl Device for DeviceWrapper {
 
     fn receive(&mut self, _timestamp: Instant) -> Option<(Self::RxToken<'_>, Self::TxToken<'_>)> {
         let rx_buf = self.receive()?;
-        Some((AxNetRxToken(&self.inner, rx_buf), AxNetTxToken(&self.inner)))
+        Some((AxNetRxToken(rx_buf), AxNetTxToken(&self.inner)))
     }
 
     fn transmit(&mut self, _timestamp: Instant) -> Option<Self::TxToken<'_>> {
@@ -227,7 +242,10 @@ impl Device for DeviceWrapper {
     }
 }
 
-struct AxNetRxToken<'a>(&'a RefCell<AxNetDevice>, NetBufferBox<'static>);
+// struct AxNetRxToken<'a>(&'a RefCell<AxNetDevice>, NetBufferBox<'static>);
+// struct AxNetTxToken<'a>(&'a RefCell<AxNetDevice>);
+
+struct AxNetRxToken<'a>(Box<dyn RxBuf + 'a>);
 struct AxNetTxToken<'a>(&'a RefCell<AxNetDevice>);
 
 impl<'a> RxToken for AxNetRxToken<'a> {
@@ -235,14 +253,27 @@ impl<'a> RxToken for AxNetRxToken<'a> {
     where
         F: FnOnce(&mut [u8]) -> R,
     {
-        let mut rx_buf = self.1;
+        // let mut rx_buf = self.1;
+        // trace!(
+        //     "RECV {} bytes: {:02X?}",
+        //     rx_buf.packet().len(),
+        //     rx_buf.packet()
+        // );
+        // let result = f(rx_buf.packet_mut());
+        // self.0.borrow_mut().recycle_rx_buffer(rx_buf).unwrap();
+        // result
+
+        let mut rx_buf = self.0;
         trace!(
             "RECV {} bytes: {:02X?}",
             rx_buf.packet().len(),
             rx_buf.packet()
         );
         let result = f(rx_buf.packet_mut());
-        self.0.borrow_mut().recycle_rx_buffer(rx_buf).unwrap();
+        info!(
+            "RECV PACKET: {}",
+            PrettyPrinter::<EthernetFrame<&[u8]>>::new("", &rx_buf.packet())
+        );
         result
     }
 }
@@ -252,12 +283,23 @@ impl<'a> TxToken for AxNetTxToken<'a> {
     where
         F: FnOnce(&mut [u8]) -> R,
     {
+        // let mut dev = self.0.borrow_mut();
+        // let mut tx_buf = NET_BUF_POOL.alloc().unwrap();
+        // dev.prepare_tx_buffer(&mut tx_buf, len).unwrap();
+        // let result = f(tx_buf.packet_mut());
+        // trace!("SEND {} bytes: {:02X?}", len, tx_buf.packet());
+        // dev.transmit(&tx_buf).unwrap();
+        // result
+
         let mut dev = self.0.borrow_mut();
-        let mut tx_buf = NET_BUF_POOL.alloc().unwrap();
-        dev.prepare_tx_buffer(&mut tx_buf, len).unwrap();
-        let result = f(tx_buf.packet_mut());
-        trace!("SEND {} bytes: {:02X?}", len, tx_buf.packet());
-        dev.transmit(&tx_buf).unwrap();
+        let mut tx_buf = [0u8; NET_BUF_LEN];
+        let result = f(&mut tx_buf);
+        trace!("SEND {} bytes: {:02X?}", len, tx_buf);
+        info!(
+            "SEND PACKET: {}",
+            PrettyPrinter::<EthernetFrame<&[u8]>>::new("", &tx_buf)
+        );
+        dev.send(&tx_buf).unwrap();
         result
     }
 }
@@ -283,9 +325,9 @@ fn snoop_tcp_packet(buf: &[u8]) -> Result<(), smoltcp::wire::Error> {
 }
 
 pub(crate) fn init(mut net_dev: AxNetDevice) {
-    let pool = NetBufferPool::new(NET_BUF_POOL_SIZE, NET_BUF_LEN).unwrap();
-    NET_BUF_POOL.init_by(pool);
-    net_dev.fill_rx_buffers(&NET_BUF_POOL).unwrap();
+    // let pool = NetBufferPool::new(NET_BUF_POOL_SIZE, NET_BUF_LEN).unwrap();
+    // NET_BUF_POOL.init_by(pool);
+    // net_dev.fill_rx_buffers(&NET_BUF_POOL).unwrap();
 
     let ether_addr = EthernetAddress(net_dev.mac_address().0);
     let eth0 = InterfaceWrapper::new("eth0", net_dev, ether_addr);

@@ -38,7 +38,7 @@ fn main() {
             match recv() {
                 Ok(buf) => {
                     // receive
-                    let buf = buf.as_bytes();
+                    let buf = buf.packet();
                     libax::info!(
                         "dst mac: {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}",
                         buf[0],
@@ -77,8 +77,9 @@ fn main() {
                         0x00, 0x00,                                 // udp checksum, optional
                         b'H', b'e', b'l', b'l', b'o',                // payload
                         // rest of the payload is zero-filled because mempools guarantee empty bufs
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-                    ];
+                        b' ', b'i', b'x', b'g', b'b', b'e', 
+                        b' ', b'd', b'r', b'i', b'v', b'e', b'r'
+                    ]; 
 
                     // Set dst MAC
                     pkt_data[0..6].copy_from_slice(&buf[6..12]);
