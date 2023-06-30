@@ -43,6 +43,8 @@ const LISTEN_QUEUE_SIZE: usize = 512;
 const NET_BUF_LEN: usize = 1526;
 const NET_BUF_POOL_SIZE: usize = 128;
 
+const STANDARD_MTU: usize = 1500;
+
 // static NET_BUF_POOL: LazyInit<NetBufferPool> = LazyInit::new();
 
 static LISTEN_TABLE: LazyInit<ListenTable> = LazyInit::new();
@@ -235,7 +237,7 @@ impl Device for DeviceWrapper {
 
     fn capabilities(&self) -> DeviceCapabilities {
         let mut caps = DeviceCapabilities::default();
-        caps.max_transmission_unit = 1514;
+        caps.max_transmission_unit = STANDARD_MTU;
         caps.max_burst_size = None;
         caps.medium = Medium::Ethernet;
         caps
@@ -292,8 +294,7 @@ impl<'a> TxToken for AxNetTxToken<'a> {
         // result
 
         let mut dev = self.0.borrow_mut();
-        // let mut tx_buf = [0u8; NET_BUF_LEN];
-        let mut tx_buf = vec![0u8; NET_BUF_LEN];
+        let mut tx_buf = vec![0u8; len];
         let result = f(&mut tx_buf);
         trace!("SEND {} bytes: {:02X?}", len, tx_buf);
         // info!(
