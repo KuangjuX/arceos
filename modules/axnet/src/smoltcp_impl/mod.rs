@@ -26,8 +26,8 @@ pub use self::dns::resolve_socket_addr;
 pub use self::tcp::TcpSocket;
 pub use self::udp::UdpSocket;
 
-const IP: IpAddress = IpAddress::v4(10, 2, 2, 2); // QEMU user networking default IP
-const GATEWAY: IpAddress = IpAddress::v4(10, 2, 2, 1); // QEMU user networking gateway
+const IP: IpAddress = IpAddress::v4(10, 2, 2, 2);
+const GATEWAY: IpAddress = IpAddress::v4(10, 2, 2, 1);
 const DNS_SEVER: IpAddress = IpAddress::v4(8, 8, 8, 8);
 const IP_PREFIX: u8 = 24;
 
@@ -270,10 +270,10 @@ impl<'a> RxToken for AxNetRxToken<'a> {
             rx_buf.packet()
         );
         let result = f(rx_buf.packet_mut());
-        info!(
-            "RECV PACKET: {}",
-            PrettyPrinter::<EthernetFrame<&[u8]>>::new("", &rx_buf.packet())
-        );
+        // info!(
+        //     "[axnet] RECV PACKET: {}",
+        //     PrettyPrinter::<EthernetFrame<&[u8]>>::new("", &rx_buf.packet())
+        // );
         result
     }
 }
@@ -292,13 +292,14 @@ impl<'a> TxToken for AxNetTxToken<'a> {
         // result
 
         let mut dev = self.0.borrow_mut();
-        let mut tx_buf = [0u8; NET_BUF_LEN];
+        // let mut tx_buf = [0u8; NET_BUF_LEN];
+        let mut tx_buf = vec![0u8; NET_BUF_LEN];
         let result = f(&mut tx_buf);
         trace!("SEND {} bytes: {:02X?}", len, tx_buf);
-        info!(
-            "SEND PACKET: {}",
-            PrettyPrinter::<EthernetFrame<&[u8]>>::new("", &tx_buf)
-        );
+        // info!(
+        //     "[axnet] SEND PACKET: {}",
+        //     PrettyPrinter::<EthernetFrame<&[u8]>>::new("", &tx_buf)
+        // );
         dev.send(&tx_buf).unwrap();
         result
     }

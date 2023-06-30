@@ -30,7 +30,7 @@ impl<H: IxgbeHal, const QS: u16> IxgbeNic<H, QS> {
         })?;
 
         // TODO: Customizable Memory Pool member.
-        let mempool = Mempool::<H>::allocate(2048, 0).unwrap();
+        let mempool = Mempool::<H>::allocate(2048, 4096).unwrap();
         Ok(Self { inner, mempool })
     }
 }
@@ -100,10 +100,10 @@ impl<'a, H: IxgbeHal + 'static, const QS: u16> NetDriverOps<'a> for IxgbeNic<H, 
     fn send(&mut self, buf: &[u8]) -> DevResult {
         let len = buf.len();
         if let Ok(mut tx_buf) = TxBuffer::alloc(&self.mempool, len) {
-            let packet = tx_buf.packet_mut();
+            // let packet = tx_buf.packet_mut();
             // TODO: zero copy
             unsafe {
-                core::ptr::copy(buf.as_ptr(), packet.as_mut_ptr(), len);
+                core::ptr::copy(buf.as_ptr(), tx_buf.packet_mut().as_mut_ptr(), len);
             }
             match self.inner.send(0, tx_buf) {
                 Ok(_) => return Ok(()),

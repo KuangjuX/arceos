@@ -11,7 +11,7 @@ use libax::io::{self, prelude::*};
 use libax::net::{SocketAddr, TcpStream, ToSocketAddrs};
 
 const DEST_HOST: &str = "ident.me";
-const DEST_IP: &str = "49.12.234.183";
+const DEST_IP: &str = "10.2.2.1";
 const REQUEST: &str = "\
 GET / HTTP/1.1\r\n\
 Host: ident.me\r\n\

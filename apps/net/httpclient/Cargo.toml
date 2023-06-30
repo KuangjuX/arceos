@@ -6,7 +6,7 @@ authors = ["Yuekai Jia <equation618@gmail.com>", "Dashuai Wu <wudashuaijss@foxma
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-libax = { path = "../../../ulib/libax", features = ["paging", "net"] }
+libax = { path = "../../../ulib/libax", features = ["paging", "ixgbe_net"] }
 
 [features]
 default = []

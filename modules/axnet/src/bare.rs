@@ -57,7 +57,7 @@ impl BareNic {
     }
 }
 
-pub fn init(mut net_dev: AxNetDevice) {
+pub fn init(net_dev: AxNetDevice) {
     let nic = BareNic::new(net_dev);
     BARE_NIC.init_by(nic);
 }
