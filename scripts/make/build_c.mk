@@ -5,6 +5,7 @@ ulib_dir := ulib/c_libax
 src_dir := $(ulib_dir)/src
 obj_dir := $(ulib_dir)/build_$(ARCH)
 inc_dir := $(ulib_dir)/include
+libax_inc_dir = $(ulib_dir)/../libax/include
 c_lib := $(obj_dir)/libc.a
 
 in_feat := $(APP)/features.txt
@@ -14,7 +15,7 @@ ulib_src := $(wildcard $(src_dir)/*.c)
 ulib_obj := $(patsubst $(src_dir)/%.c,$(obj_dir)/%.o,$(ulib_src))
 
 CFLAGS += -nostdinc -static -no-pie -fno-builtin -ffreestanding -Wall
-CFLAGS += -I$(inc_dir) -I$(ulib_dir)/../libax
+CFLAGS += -I$(inc_dir) -I$(libax_inc_dir)
 LDFLAGS += -nostdlib -static -no-pie --gc-sections -T$(LD_SCRIPT)
 
 ifeq ($(MODE), release)
@@ -50,15 +51,15 @@ _gen_feat: $(obj_dir)
 endif
 
 $(obj_dir):
-	mkdir -p $@
+	$(call run_cmd,mkdir,-p $@)
 
 $(obj_dir)/%.o: $(src_dir)/%.c $(out_feat)
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(call run_cmd,$(CC),$(CFLAGS) -c -o $@ $<)
 
 $(c_lib): $(obj_dir) _gen_feat $(ulib_obj)
-	rm -f $@
-	$(AR) rc $@ $(ulib_obj)
-	$(RANLIB) $@
+	@rm -f $@
+	$(call run_cmd,$(AR),rc $@ $(ulib_obj))
+	$(call run_cmd,$(RANLIB),$@)
 
 app-objs := main.o
 
@@ -66,11 +67,11 @@ app-objs := main.o
 
 app-objs := $(addprefix $(APP)/,$(app-objs))
 
-$(APP)/%.o: $(APP)/%.c
-	$(CC) $(CFLAGS) $(APP_CFLAGS) -c -o $@ $<
+$(APP)/%.o: $(APP)/%.c $(libax_inc_dir)/ax_pthread_mutex.h
+	$(call run_cmd,$(CC),$(CFLAGS) $(APP_CFLAGS) -c -o $@ $<)
 
 $(OUT_ELF): $(app-objs) $(c_lib) $(rust_lib)
 	@printf "    $(CYAN_C)Linking$(END_C) $(OUT_ELF)\n"
-	$(LD) $(LDFLAGS) $^ -o $@
+	$(call run_cmd,$(LD),$(LDFLAGS) $^ -o $@)
 
 .PHONY: _gen_feat
