@@ -93,6 +93,10 @@ pub trait NetDriverOps<'a>: BaseDriverOps {
     /// returns [`DevResult`].
     fn send(&mut self, tx_buf: &[u8]) -> DevResult;
 
+    /// Allocate a memory buffer of a specified size for network transmission,
+    /// returns [`DevResult`]
+    fn alloc_tx_buffer(&self, size: usize) -> DevResult<Box<dyn TxBuf>>;
+
     /// Reset network card states.
     fn reset_stats(&mut self);
 
@@ -101,11 +105,11 @@ pub trait NetDriverOps<'a>: BaseDriverOps {
 }
 
 pub struct RxBufWrapper<H: IxgbeHal> {
-    inner: RxBuffer<H>,
+    pub inner: RxBuffer<H>,
 }
 
-pub struct TxBufWrapper<H: IxgbeHal> {
-    inner: TxBuffer<H>,
+pub struct TxBufWrapper<H: IxgbeHal + 'static> {
+    pub inner: TxBuffer<H>,
 }
 
 pub trait RxBuf {
@@ -132,9 +136,11 @@ pub trait TxBuf {
 
     /// Returns allocated mutuable buffer data.
     fn packet_mut(&mut self) -> &mut [u8];
+
+    fn as_any(self: Box<Self>) -> Box<dyn core::any::Any>;
 }
 
-impl<H: IxgbeHal> TxBuf for TxBufWrapper<H> {
+impl<H: IxgbeHal + 'static> TxBuf for TxBufWrapper<H> {
     /// Returns allocated packet buffer data.
     fn packet(&self) -> &[u8] {
         self.inner.packet()
@@ -143,5 +149,9 @@ impl<H: IxgbeHal> TxBuf for TxBufWrapper<H> {
     /// Returns allocated mutuable buffer data.
     fn packet_mut(&mut self) -> &mut [u8] {
         self.inner.packet_mut()
+    }
+
+    fn as_any(self: Box<Self>) -> Box<dyn core::any::Any> {
+        Box::new(self)
     }
 }

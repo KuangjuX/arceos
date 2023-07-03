@@ -15,7 +15,11 @@ pub use ixgbe_driver::{INTEL_82599, INTEL_VEND};
 
 use crate::NetDriverOps;
 use crate::RxBufWrapper;
+use crate::TxBuf;
+use crate::TxBufWrapper;
 use alloc::boxed::Box;
+use core::any::Any;
+use core::any::TypeId;
 
 pub struct IxgbeNic<H: IxgbeHal, const QS: u16> {
     inner: IxgbeDevice<H>,
@@ -100,7 +104,6 @@ impl<'a, H: IxgbeHal + 'static, const QS: u16> NetDriverOps<'a> for IxgbeNic<H, 
     fn send(&mut self, buf: &[u8]) -> DevResult {
         let len = buf.len();
         if let Ok(mut tx_buf) = TxBuffer::alloc(&self.mempool, len) {
-            // let packet = tx_buf.packet_mut();
             // TODO: zero copy
             unsafe {
                 core::ptr::copy(buf.as_ptr(), tx_buf.packet_mut().as_mut_ptr(), len);
@@ -114,6 +117,11 @@ impl<'a, H: IxgbeHal + 'static, const QS: u16> NetDriverOps<'a> for IxgbeNic<H, 
             }
         }
         Err(DevError::NoMemory)
+    }
+
+    fn alloc_tx_buffer(&self, size: usize) -> DevResult<Box<dyn crate::TxBuf>> {
+        let tx_buf = TxBuffer::alloc(&self.mempool, size).map_err(|_| DevError::NoMemory)?;
+        Ok(Box::new(TxBufWrapper { inner: tx_buf }))
     }
 
     fn reset_stats(&mut self) {

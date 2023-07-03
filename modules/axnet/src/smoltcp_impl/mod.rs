@@ -4,6 +4,7 @@ mod tcp;
 mod udp;
 
 use alloc::{boxed::Box, collections::VecDeque, vec};
+use core::borrow::BorrowMut;
 use core::cell::RefCell;
 use core::ops::DerefMut;
 
@@ -272,10 +273,7 @@ impl<'a> RxToken for AxNetRxToken<'a> {
             rx_buf.packet()
         );
         let result = f(rx_buf.packet_mut());
-        // info!(
-        //     "[axnet] RECV PACKET: {}",
-        //     PrettyPrinter::<EthernetFrame<&[u8]>>::new("", &rx_buf.packet())
-        // );
+        // self.borrow_mut().recycle_rx_buffer(rx_buf).unwrap();
         result
     }
 }
@@ -295,12 +293,9 @@ impl<'a> TxToken for AxNetTxToken<'a> {
 
         let mut dev = self.0.borrow_mut();
         let mut tx_buf = vec![0u8; len];
+        // let mut tx_buf = dev.alloc_tx_buffer(len).unwrap();
         let result = f(&mut tx_buf);
         trace!("SEND {} bytes: {:02X?}", len, tx_buf);
-        // info!(
-        //     "[axnet] SEND PACKET: {}",
-        //     PrettyPrinter::<EthernetFrame<&[u8]>>::new("", &tx_buf)
-        // );
         dev.send(&tx_buf).unwrap();
         result
     }

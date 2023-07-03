@@ -46,14 +46,15 @@ impl BareNic {
     }
 
     pub fn send(&self, buf: &[u8]) -> AxResult {
-        match self.inner.lock().borrow_mut().send(buf) {
-            Ok(_) => Ok(()),
-            Err(err) => match err {
-                DevError::Again => Err(AxError::WouldBlock),
-                DevError::NoMemory => Err(AxError::NoMemory),
-                _ => panic!("Unexpected error"),
-            },
-        }
+        // match self.inner.lock().borrow_mut().send(buf) {
+        //     Ok(_) => Ok(()),
+        //     Err(err) => match err {
+        //         DevError::Again => Err(AxError::WouldBlock),
+        //         DevError::NoMemory => Err(AxError::NoMemory),
+        //         _ => panic!("Unexpected error"),
+        //     },
+        // }
+        todo!()
     }
 }
 

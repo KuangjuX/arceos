@@ -140,6 +140,10 @@ impl<'a, H: Hal, T: Transport, const QS: usize> NetDriverOps<'a> for VirtIoNetDe
         todo!()
     }
 
+    fn alloc_tx_buffer(&self, size: usize) -> DevResult<alloc::boxed::Box<dyn driver_net::TxBuf>> {
+        todo!()
+    }
+
     fn reset_stats(&mut self) {
         todo!()
     }
