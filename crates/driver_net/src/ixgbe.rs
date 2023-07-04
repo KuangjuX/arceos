@@ -16,7 +16,6 @@ pub use ixgbe_driver::{INTEL_82599, INTEL_VEND};
 use crate::NetDriverOps;
 use crate::RxBuf;
 use crate::TxBuf;
-use alloc::boxed::Box;
 
 pub struct IxgbeNic<H: IxgbeHal, const QS: u16> {
     inner: IxgbeDevice<H>,
@@ -67,27 +66,19 @@ impl<'a, H: IxgbeHal + 'static, const QS: u16> NetDriverOps<'a> for IxgbeNic<H, 
         self.inner.can_send(0).unwrap()
     }
 
-    // fn fill_rx_buffers(&mut self, buf_pool: &'a crate::NetBufferPool) -> DevResult {
-    //     todo!()
-    // }
+    fn fill_rx_buffers(&mut self, _buf_pool: &'a crate::NetBufferPool) -> DevResult {
+        Ok(())
+    }
 
-    // fn prepare_tx_buffer(&self, tx_buf: &mut crate::NetBuffer, packet_len: usize) -> DevResult {
-    //     todo!()
-    // }
+    fn prepare_tx_buffer(&self, _tx_buf: &mut crate::NetBuffer, _packet_len: usize) -> DevResult {
+        Ok(())
+    }
 
-    // fn receive(&mut self) -> DevResult<crate::NetBufferBox<'a>> {
-    //     todo!()
-    // }
+    fn recycle_rx_buffer(&mut self, _rx_buf: crate::NetBufferBox<'a>) -> DevResult {
+        Ok(())
+    }
 
-    // fn recycle_rx_buffer(&mut self, rx_buf: crate::NetBufferBox<'a>) -> DevResult {
-    //     todo!()
-    // }
-
-    // fn transmit(&mut self, tx_buf: &crate::NetBuffer) -> DevResult {
-    //     todo!()
-    // }
-
-    fn recv(&mut self) -> DevResult<RxBuf<'a>> {
+    fn receive(&mut self) -> DevResult<RxBuf<'a>> {
         // TODO: configurable param
         match self.inner.receive(0) {
             Ok(rx_buf) => Ok(RxBuf::Ixgbe(rx_buf)),
@@ -98,23 +89,7 @@ impl<'a, H: IxgbeHal + 'static, const QS: u16> NetDriverOps<'a> for IxgbeNic<H, 
         }
     }
 
-    fn send(&mut self, buf: TxBuf) -> DevResult {
-        // let len = buf.len();
-        // if let Ok(mut tx_buf) = TxBuffer::alloc(&self.mempool, len) {
-        //     // TODO: zero copy
-        //     unsafe {
-        //         core::ptr::copy(buf.as_ptr(), tx_buf.packet_mut().as_mut_ptr(), len);
-        //     }
-        //     match self.inner.send(0, tx_buf) {
-        //         Ok(_) => return Ok(()),
-        //         Err(err) => match err {
-        //             IxgbeError::QueueFull => return Err(DevError::Again),
-        //             _ => panic!("Unexpected err: {:?}", err),
-        //         },
-        //     }
-        // }
-        // Err(DevError::NoMemory)
-
+    fn transmit(&mut self, buf: TxBuf) -> DevResult {
         match buf {
             TxBuf::Ixgbe(tx_buf) => match self.inner.send(0, tx_buf) {
                 Ok(_) => Ok(()),

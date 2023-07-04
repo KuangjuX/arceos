@@ -51,46 +51,29 @@ pub trait NetDriverOps<'a>: BaseDriverOps {
     /// Size of the transmit queue.
     fn tx_queue_size(&self) -> usize;
 
-    // /// Fills the receive queue with buffers.
-    // ///
-    // /// It should be called once when the driver is initialized.
-    // fn fill_rx_buffers(&mut self, buf_pool: &'a NetBufferPool) -> DevResult;
+    /// Fills the receive queue with buffers.
+    ///
+    /// It should be called once when the driver is initialized.
+    fn fill_rx_buffers(&mut self, buf_pool: &'a NetBufferPool) -> DevResult;
 
-    // /// Prepares a buffer for transmitting.
-    // ///
-    // /// e.g., fill the header of the packet.
-    // fn prepare_tx_buffer(&self, tx_buf: &mut NetBuffer, packet_len: usize) -> DevResult;
+    /// Prepares a buffer for transmitting.
+    ///
+    /// e.g., fill the header of the packet.
+    fn prepare_tx_buffer(&self, tx_buf: &mut NetBuffer, packet_len: usize) -> DevResult;
 
-    // /// Gives back the `rx_buf` to the receive queue for later receiving.
-    // ///
-    // /// `rx_buf` should be the same as the one returned by
-    // /// [`NetDriverOps::receive`].
-    // fn recycle_rx_buffer(&mut self, rx_buf: NetBufferBox<'a>) -> DevResult;
-
-    // /// Transmits a packet in the buffer to the network, and blocks until the
-    // /// request completed.
-    // ///
-    // /// `tx_buf` should be initialized by [`NetDriverOps::prepare_tx_buffer`].
-    // fn transmit(&mut self, tx_buf: &NetBuffer) -> DevResult;
-
-    // /// Receives a packet from the network and store it in the [`NetBuffer`],
-    // /// returns the buffer.
-    // ///
-    // /// Before receiving, the driver should have already populated some buffers
-    // /// in the receive queue by [`NetDriverOps::fill_rx_buffers`] or
-    // /// [`NetDriverOps::recycle_rx_buffer`].
-    // ///
-    // /// If currently no incomming packets, returns an error with type
-    // /// [`DevError::Again`].
-    // fn receive(&mut self) -> DevResult<NetBufferBox<'a>>;
+    /// Gives back the `rx_buf` to the receive queue for later receiving.
+    ///
+    /// `rx_buf` should be the same as the one returned by
+    /// [`NetDriverOps::receive`].
+    fn recycle_rx_buffer(&mut self, rx_buf: NetBufferBox<'a>) -> DevResult;
 
     /// Receive a packet from the network and store in the [`Box<dyn RxBuf>`],
     /// returns the buffer.
-    fn recv(&mut self) -> DevResult<RxBuf<'a>>;
+    fn receive(&mut self) -> DevResult<RxBuf<'a>>;
 
     /// Send a packet to network and write it into buffer,
     /// returns [`DevResult`].
-    fn send(&mut self, tx_buf: TxBuf) -> DevResult;
+    fn transmit(&mut self, tx_buf: TxBuf) -> DevResult;
 
     /// Allocate a memory buffer of a specified size for network transmission,
     /// returns [`DevResult`]
@@ -102,58 +85,6 @@ pub trait NetDriverOps<'a>: BaseDriverOps {
     /// Read network card states.
     fn read_stats(&self) -> DeviceStats;
 }
-
-pub struct RxBufWrapper {
-    pub inner: RxBuffer,
-}
-
-// pub struct TxBufWrapper {
-//     pub inner: TxBuffer,
-// }
-
-// pub trait RxBuf {
-//     /// Returns packet in the buffer, not including the header.
-//     fn packet(&self) -> &[u8];
-
-//     /// Returns packet in the buffer, not including the header.
-//     fn packet_mut(&mut self) -> &mut [u8];
-// }
-
-// impl RxBuf for RxBufWrapper {
-//     fn packet(&self) -> &[u8] {
-//         self.inner.packet()
-//     }
-
-//     fn packet_mut(&mut self) -> &mut [u8] {
-//         self.inner.packet_mut()
-//     }
-// }
-
-// pub trait TxBuf {
-//     /// Returns allocated packet buffer data.
-//     fn packet(&self) -> &[u8];
-
-//     /// Returns allocated mutuable buffer data.
-//     fn packet_mut(&mut self) -> &mut [u8];
-
-//     fn as_any(self: Box<Self>) -> Box<dyn core::any::Any>;
-// }
-
-// impl TxBuf for TxBufWrapper {
-//     /// Returns allocated packet buffer data.
-//     fn packet(&self) -> &[u8] {
-//         self.inner.packet()
-//     }
-
-//     /// Returns allocated mutuable buffer data.
-//     fn packet_mut(&mut self) -> &mut [u8] {
-//         self.inner.packet_mut()
-//     }
-
-//     fn as_any(self: Box<Self>) -> Box<dyn core::any::Any> {
-//         Box::new(self)
-//     }
-// }
 
 pub enum TxBuf<'a> {
     Ixgbe(TxBuffer),
