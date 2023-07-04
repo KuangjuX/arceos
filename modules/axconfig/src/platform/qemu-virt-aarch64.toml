@@ -74,3 +74,6 @@ uart-irq-num = "33"
 # GICC Address
 gicc-paddr = "0x0801_0000"
 gicd-paddr = "0x0800_0000"
+
+# Timer interrupt frequency in Hz.
+timer-frequency = "0"

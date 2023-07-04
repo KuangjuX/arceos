@@ -1,6 +1,6 @@
 default
 alloc
 paging
-ixgbe_net
+net
 fs
 fp_simd
