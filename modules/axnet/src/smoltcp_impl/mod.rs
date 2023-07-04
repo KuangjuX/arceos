@@ -62,7 +62,7 @@ struct SocketSetWrapper<'a>(Mutex<SocketSet<'a>>);
 struct DeviceWrapper {
     // use `RefCell` is enough since it's wrapped in `Mutex` in `InterfaceWrapper`.
     inner: RefCell<AxNetDevice>,
-    rx_buf_queue: VecDeque<Box<dyn RxBuf>>,
+    rx_buf_queue: VecDeque<RxBuf<'static>>,
 }
 
 struct InterfaceWrapper {
@@ -221,7 +221,7 @@ impl DeviceWrapper {
     //     self.rx_buf_queue.pop_front()
     // }
 
-    fn receive(&mut self) -> Option<Box<dyn RxBuf>> {
+    fn receive(&mut self) -> Option<RxBuf<'static>> {
         self.rx_buf_queue.pop_front()
     }
 }
@@ -251,7 +251,7 @@ impl Device for DeviceWrapper {
 // struct AxNetRxToken<'a>(&'a RefCell<AxNetDevice>, NetBufferBox<'static>);
 // struct AxNetTxToken<'a>(&'a RefCell<AxNetDevice>);
 
-struct AxNetRxToken<'a>(Box<dyn RxBuf + 'a>);
+struct AxNetRxToken<'a>(RxBuf<'a>);
 struct AxNetTxToken<'a>(&'a RefCell<AxNetDevice>);
 
 impl<'a> RxToken for AxNetRxToken<'a> {
@@ -295,11 +295,11 @@ impl<'a> TxToken for AxNetTxToken<'a> {
         // result
 
         let mut dev = self.0.borrow_mut();
-        let mut tx_buf = vec![0u8; len];
+        let mut tx_buf = dev.alloc_tx_buffer(len).unwrap();
         // let mut tx_buf = dev.alloc_tx_buffer(len).unwrap();
-        let result = f(&mut tx_buf);
-        trace!("SEND {} bytes: {:02X?}", len, tx_buf);
-        dev.send(&tx_buf).unwrap();
+        let result = f(tx_buf.packet_mut());
+        trace!("SEND {} bytes: {:02X?}", len, tx_buf.packet());
+        dev.send(tx_buf).unwrap();
         result
     }
 }
@@ -324,7 +324,7 @@ fn snoop_tcp_packet(buf: &[u8]) -> Result<(), smoltcp::wire::Error> {
     Ok(())
 }
 
-pub(crate) fn init(mut net_dev: AxNetDevice) {
+pub(crate) fn init(net_dev: AxNetDevice) {
     // let pool = NetBufferPool::new(NET_BUF_POOL_SIZE, NET_BUF_LEN).unwrap();
     // NET_BUF_POOL.init_by(pool);
     // net_dev.fill_rx_buffers(&NET_BUF_POOL).unwrap();

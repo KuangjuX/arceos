@@ -1,6 +1,8 @@
 use crate::as_dev_err;
 use driver_common::{BaseDriverOps, DevError, DevResult, DeviceType};
-use driver_net::{EthernetAddress, NetBuffer, NetBufferBox, NetBufferPool, NetDriverOps};
+use driver_net::{
+    EthernetAddress, NetBuffer, NetBufferBox, NetBufferPool, NetDriverOps, RxBuf, TxBuf,
+};
 use virtio_drivers::{device::net::VirtIONetRaw as InnerDev, transport::Transport, Hal};
 
 /// The VirtIO network device driver.
@@ -132,15 +134,15 @@ impl<'a, H: Hal, T: Transport, const QS: usize> NetDriverOps<'a> for VirtIoNetDe
     //     }
     // }
 
-    fn recv(&mut self) -> DevResult<alloc::boxed::Box<dyn driver_net::RxBuf>> {
+    fn recv(&mut self) -> DevResult<RxBuf<'a>> {
         todo!()
     }
 
-    fn send(&mut self, tx_buf: &[u8]) -> DevResult {
+    fn send(&mut self, tx_buf: TxBuf) -> DevResult {
         todo!()
     }
 
-    fn alloc_tx_buffer(&self, size: usize) -> DevResult<alloc::boxed::Box<dyn driver_net::TxBuf>> {
+    fn alloc_tx_buffer(&self, size: usize) -> DevResult<TxBuf<'a>> {
         todo!()
     }
 

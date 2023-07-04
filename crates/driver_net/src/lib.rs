@@ -12,11 +12,10 @@ mod net_buf;
 extern crate log;
 extern crate alloc;
 
-use alloc::boxed::Box;
 #[doc(no_inline)]
 pub use driver_common::{BaseDriverOps, DevError, DevResult, DeviceType};
 pub use ixgbe_driver::DeviceStats;
-use ixgbe_driver::{IxgbeHal, RxBuffer, TxBuffer};
+use ixgbe_driver::{RxBuffer, TxBuffer};
 
 pub use self::net_buf::{NetBuffer, NetBufferBox, NetBufferPool};
 
@@ -87,15 +86,15 @@ pub trait NetDriverOps<'a>: BaseDriverOps {
 
     /// Receive a packet from the network and store in the [`Box<dyn RxBuf>`],
     /// returns the buffer.
-    fn recv(&mut self) -> DevResult<Box<dyn RxBuf>>;
+    fn recv(&mut self) -> DevResult<RxBuf<'a>>;
 
     /// Send a packet to network and write it into buffer,
     /// returns [`DevResult`].
-    fn send(&mut self, tx_buf: &[u8]) -> DevResult;
+    fn send(&mut self, tx_buf: TxBuf) -> DevResult;
 
     /// Allocate a memory buffer of a specified size for network transmission,
     /// returns [`DevResult`]
-    fn alloc_tx_buffer(&self, size: usize) -> DevResult<Box<dyn TxBuf>>;
+    fn alloc_tx_buffer(&self, size: usize) -> DevResult<TxBuf<'a>>;
 
     /// Reset network card states.
     fn reset_stats(&mut self);
@@ -104,54 +103,96 @@ pub trait NetDriverOps<'a>: BaseDriverOps {
     fn read_stats(&self) -> DeviceStats;
 }
 
-pub struct RxBufWrapper<H: IxgbeHal> {
-    pub inner: RxBuffer<H>,
+pub struct RxBufWrapper {
+    pub inner: RxBuffer,
 }
 
-pub struct TxBufWrapper<H: IxgbeHal + 'static> {
-    pub inner: TxBuffer<H>,
+// pub struct TxBufWrapper {
+//     pub inner: TxBuffer,
+// }
+
+// pub trait RxBuf {
+//     /// Returns packet in the buffer, not including the header.
+//     fn packet(&self) -> &[u8];
+
+//     /// Returns packet in the buffer, not including the header.
+//     fn packet_mut(&mut self) -> &mut [u8];
+// }
+
+// impl RxBuf for RxBufWrapper {
+//     fn packet(&self) -> &[u8] {
+//         self.inner.packet()
+//     }
+
+//     fn packet_mut(&mut self) -> &mut [u8] {
+//         self.inner.packet_mut()
+//     }
+// }
+
+// pub trait TxBuf {
+//     /// Returns allocated packet buffer data.
+//     fn packet(&self) -> &[u8];
+
+//     /// Returns allocated mutuable buffer data.
+//     fn packet_mut(&mut self) -> &mut [u8];
+
+//     fn as_any(self: Box<Self>) -> Box<dyn core::any::Any>;
+// }
+
+// impl TxBuf for TxBufWrapper {
+//     /// Returns allocated packet buffer data.
+//     fn packet(&self) -> &[u8] {
+//         self.inner.packet()
+//     }
+
+//     /// Returns allocated mutuable buffer data.
+//     fn packet_mut(&mut self) -> &mut [u8] {
+//         self.inner.packet_mut()
+//     }
+
+//     fn as_any(self: Box<Self>) -> Box<dyn core::any::Any> {
+//         Box::new(self)
+//     }
+// }
+
+pub enum TxBuf<'a> {
+    Ixgbe(TxBuffer),
+    Virtio(NetBufferBox<'a>),
 }
 
-pub trait RxBuf {
-    /// Returns packet in the buffer, not including the header.
-    fn packet(&self) -> &[u8];
-
-    /// Returns packet in the buffer, not including the header.
-    fn packet_mut(&mut self) -> &mut [u8];
-}
-
-impl<H: IxgbeHal> RxBuf for RxBufWrapper<H> {
-    fn packet(&self) -> &[u8] {
-        self.inner.packet()
+impl<'a> TxBuf<'a> {
+    pub fn packet(&self) -> &[u8] {
+        match self {
+            Self::Ixgbe(tx_buf) => tx_buf.packet(),
+            Self::Virtio(tx_buf) => tx_buf.packet(),
+        }
     }
 
-    fn packet_mut(&mut self) -> &mut [u8] {
-        self.inner.packet_mut()
+    pub fn packet_mut(&mut self) -> &mut [u8] {
+        match self {
+            Self::Ixgbe(tx_buf) => tx_buf.packet_mut(),
+            Self::Virtio(tx_buf) => tx_buf.packet_mut(),
+        }
     }
 }
 
-pub trait TxBuf {
-    /// Returns allocated packet buffer data.
-    fn packet(&self) -> &[u8];
-
-    /// Returns allocated mutuable buffer data.
-    fn packet_mut(&mut self) -> &mut [u8];
-
-    fn as_any(self: Box<Self>) -> Box<dyn core::any::Any>;
+pub enum RxBuf<'a> {
+    Ixgbe(RxBuffer),
+    Virtio(NetBufferBox<'a>),
 }
 
-impl<H: IxgbeHal + 'static> TxBuf for TxBufWrapper<H> {
-    /// Returns allocated packet buffer data.
-    fn packet(&self) -> &[u8] {
-        self.inner.packet()
+impl<'a> RxBuf<'a> {
+    pub fn packet(&self) -> &[u8] {
+        match self {
+            Self::Ixgbe(rx_buf) => rx_buf.packet(),
+            Self::Virtio(rx_buf) => rx_buf.packet(),
+        }
     }
 
-    /// Returns allocated mutuable buffer data.
-    fn packet_mut(&mut self) -> &mut [u8] {
-        self.inner.packet_mut()
-    }
-
-    fn as_any(self: Box<Self>) -> Box<dyn core::any::Any> {
-        Box::new(self)
+    pub fn packet_mut(&mut self) -> &mut [u8] {
+        match self {
+            Self::Ixgbe(rx_buf) => rx_buf.packet_mut(),
+            Self::Virtio(rx_buf) => rx_buf.packet_mut(),
+        }
     }
 }

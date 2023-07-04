@@ -7,23 +7,20 @@ pub use ixgbe_driver::DeviceStats;
 pub use ixgbe_driver::IxgbeDevice;
 use ixgbe_driver::IxgbeError;
 pub use ixgbe_driver::IxgbeHal;
-use ixgbe_driver::Mempool;
+use ixgbe_driver::MemPool;
 use ixgbe_driver::NicDevice;
 pub use ixgbe_driver::PhysAddr;
 use ixgbe_driver::TxBuffer;
 pub use ixgbe_driver::{INTEL_82599, INTEL_VEND};
 
 use crate::NetDriverOps;
-use crate::RxBufWrapper;
+use crate::RxBuf;
 use crate::TxBuf;
-use crate::TxBufWrapper;
 use alloc::boxed::Box;
-use core::any::Any;
-use core::any::TypeId;
 
 pub struct IxgbeNic<H: IxgbeHal, const QS: u16> {
     inner: IxgbeDevice<H>,
-    mempool: Arc<Mempool<H>>,
+    mempool: Arc<MemPool>,
 }
 
 impl<H: IxgbeHal, const QS: u16> IxgbeNic<H, QS> {
@@ -34,7 +31,7 @@ impl<H: IxgbeHal, const QS: u16> IxgbeNic<H, QS> {
         })?;
 
         // TODO: Customizable Memory Pool member.
-        let mempool = Mempool::<H>::allocate(2048, 4096).unwrap();
+        let mempool = MemPool::allocate::<H>(2048, 4096).unwrap();
         Ok(Self { inner, mempool })
     }
 }
@@ -90,10 +87,10 @@ impl<'a, H: IxgbeHal + 'static, const QS: u16> NetDriverOps<'a> for IxgbeNic<H, 
     //     todo!()
     // }
 
-    fn recv(&mut self) -> DevResult<Box<dyn crate::RxBuf>> {
+    fn recv(&mut self) -> DevResult<RxBuf<'a>> {
         // TODO: configurable param
         match self.inner.receive(0) {
-            Ok(rx_buf) => Ok(Box::new(RxBufWrapper::<H> { inner: rx_buf })),
+            Ok(rx_buf) => Ok(RxBuf::Ixgbe(rx_buf)),
             Err(err) => match err {
                 IxgbeError::NotReady => Err(DevError::Again),
                 _ => panic!("Unexpected err: {:?}", err),
@@ -101,27 +98,38 @@ impl<'a, H: IxgbeHal + 'static, const QS: u16> NetDriverOps<'a> for IxgbeNic<H, 
         }
     }
 
-    fn send(&mut self, buf: &[u8]) -> DevResult {
-        let len = buf.len();
-        if let Ok(mut tx_buf) = TxBuffer::alloc(&self.mempool, len) {
-            // TODO: zero copy
-            unsafe {
-                core::ptr::copy(buf.as_ptr(), tx_buf.packet_mut().as_mut_ptr(), len);
-            }
-            match self.inner.send(0, tx_buf) {
-                Ok(_) => return Ok(()),
+    fn send(&mut self, buf: TxBuf) -> DevResult {
+        // let len = buf.len();
+        // if let Ok(mut tx_buf) = TxBuffer::alloc(&self.mempool, len) {
+        //     // TODO: zero copy
+        //     unsafe {
+        //         core::ptr::copy(buf.as_ptr(), tx_buf.packet_mut().as_mut_ptr(), len);
+        //     }
+        //     match self.inner.send(0, tx_buf) {
+        //         Ok(_) => return Ok(()),
+        //         Err(err) => match err {
+        //             IxgbeError::QueueFull => return Err(DevError::Again),
+        //             _ => panic!("Unexpected err: {:?}", err),
+        //         },
+        //     }
+        // }
+        // Err(DevError::NoMemory)
+
+        match buf {
+            TxBuf::Ixgbe(tx_buf) => match self.inner.send(0, tx_buf) {
+                Ok(_) => Ok(()),
                 Err(err) => match err {
-                    IxgbeError::QueueFull => return Err(DevError::Again),
+                    IxgbeError::QueueFull => Err(DevError::Again),
                     _ => panic!("Unexpected err: {:?}", err),
                 },
-            }
+            },
+            TxBuf::Virtio(_) => Err(DevError::BadState),
         }
-        Err(DevError::NoMemory)
     }
 
-    fn alloc_tx_buffer(&self, size: usize) -> DevResult<Box<dyn crate::TxBuf>> {
+    fn alloc_tx_buffer(&self, size: usize) -> DevResult<TxBuf<'a>> {
         let tx_buf = TxBuffer::alloc(&self.mempool, size).map_err(|_| DevError::NoMemory)?;
-        Ok(Box::new(TxBufWrapper { inner: tx_buf }))
+        Ok(TxBuf::Ixgbe(tx_buf))
     }
 
     fn reset_stats(&mut self) {

@@ -58,13 +58,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "arceos-generator"
-version = "0.1.0"
-dependencies = [
- "libax",
-]
-
-[[package]]
 name = "arceos-helloworld"
 version = "0.1.0"
 dependencies = [
@@ -678,13 +671,6 @@ dependencies = [
  "driver_display",
  "driver_net",
  "virtio-drivers",
-]
-
-[[package]]
-name = "echo"
-version = "0.1.0"
-dependencies = [
- "libax",
 ]
 
 [[package]]
