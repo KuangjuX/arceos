@@ -168,12 +168,4 @@ impl<'a, H: Hal, T: Transport, const QS: usize> NetDriverOps<'a> for VirtIoNetDe
     fn alloc_tx_buffer(&self, _size: usize) -> DevResult<TxBuf<'a>> {
         Err(DevError::Unsupported)
     }
-
-    fn reset_stats(&mut self) {
-        todo!()
-    }
-
-    fn read_stats(&self) -> driver_net::DeviceStats {
-        todo!()
-    }
 }

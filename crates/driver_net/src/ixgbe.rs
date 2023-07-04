@@ -106,14 +106,4 @@ impl<'a, H: IxgbeHal + 'static, const QS: u16> NetDriverOps<'a> for IxgbeNic<H, 
         let tx_buf = TxBuffer::alloc(&self.mempool, size).map_err(|_| DevError::NoMemory)?;
         Ok(TxBuf::Ixgbe(tx_buf))
     }
-
-    fn reset_stats(&mut self) {
-        self.inner.reset_stats()
-    }
-
-    fn read_stats(&self) -> ixgbe_driver::DeviceStats {
-        let mut stats = DeviceStats::default();
-        self.inner.read_stats(&mut stats);
-        stats
-    }
 }

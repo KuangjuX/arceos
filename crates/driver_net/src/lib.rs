@@ -14,7 +14,6 @@ extern crate alloc;
 
 #[doc(no_inline)]
 pub use driver_common::{BaseDriverOps, DevError, DevResult, DeviceType};
-pub use ixgbe_driver::DeviceStats;
 use ixgbe_driver::{RxBuffer, TxBuffer};
 
 pub use self::net_buf::{NetBuffer, NetBufferBox, NetBufferPool};
@@ -78,12 +77,6 @@ pub trait NetDriverOps<'a>: BaseDriverOps {
     /// Allocate a memory buffer of a specified size for network transmission,
     /// returns [`DevResult`]
     fn alloc_tx_buffer(&self, size: usize) -> DevResult<TxBuf<'a>>;
-
-    /// Reset network card states.
-    fn reset_stats(&mut self);
-
-    /// Read network card states.
-    fn read_stats(&self) -> DeviceStats;
 }
 
 pub enum TxBuf<'a> {
