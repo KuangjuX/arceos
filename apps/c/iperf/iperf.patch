@@ -445,7 +445,7 @@ index 0000000..9d31a66
 +    iperf_defaults(test);
 +    iperf_set_test_role(test, 's');
 +    iperf_set_test_server_port(test, port);
-+    iperf_set_test_bind_address(test, "10.0.2.15");
++    iperf_set_test_bind_address(test, "10.2.2.2");
 +    consecutive_errors = 0;
 +    for (;;) {
 +        if (iperf_run_server(test) < 0) {

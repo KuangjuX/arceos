@@ -162,7 +162,10 @@ pub extern "C" fn rust_main(cpu_id: usize, dtb: usize) -> ! {
         axfs::init_filesystems(all_devices.block);
 
         #[cfg(feature = "net")]
-        axnet::init_network(all_devices.net);
+        {
+            info!("Initialize network......");
+            axnet::init_network(all_devices.net);
+        }
 
         #[cfg(feature = "display")]
         axdisplay::init_display(all_devices.display);

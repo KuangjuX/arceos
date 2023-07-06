@@ -581,6 +581,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e496a50fda8aacccc86d7529e2c1e0892dbd0f898a6b5645b5561b89c3210efa"
 
 [[package]]
+name = "core_detect"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f8f80099a98041a3d1622845c271458a2d73e688351bf3cb999266764b81d48"
+
+[[package]]
 name = "crate_interface"
 version = "0.1.1"
 dependencies = [
@@ -923,6 +929,7 @@ name = "ixgbe-driver"
 version = "0.1.0"
 dependencies = [
  "bit_field",
+ "core_detect",
  "log",
  "smoltcp",
  "volatile 0.3.0",

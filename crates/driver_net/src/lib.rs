@@ -66,7 +66,7 @@ pub trait NetDriverOps<'a>: BaseDriverOps {
     /// [`NetDriverOps::receive`].
     fn recycle_rx_buffer(&mut self, rx_buf: NetBufferBox<'a>) -> DevResult;
 
-    /// Receive a packet from the network and store in the [`Box<dyn RxBuf>`],
+    /// Receive a packet from the network and store in the [`RxBuf<'a>`],
     /// returns the buffer.
     fn receive(&mut self) -> DevResult<RxBuf<'a>>;
 
@@ -79,12 +79,16 @@ pub trait NetDriverOps<'a>: BaseDriverOps {
     fn alloc_tx_buffer(&self, size: usize) -> DevResult<TxBuf<'a>>;
 }
 
+/// Transmit buffer enum for various devices.
 pub enum TxBuf<'a> {
+    /// Ixgbe NIC.
     Ixgbe(TxBuffer),
+    /// Virtio-net.
     Virtio(NetBufferBox<'a>),
 }
 
 impl<'a> TxBuf<'a> {
+    /// Return [`TxBuf`] inner as &[u8].
     pub fn packet(&self) -> &[u8] {
         match self {
             Self::Ixgbe(tx_buf) => tx_buf.packet(),
@@ -92,6 +96,7 @@ impl<'a> TxBuf<'a> {
         }
     }
 
+    /// Return [`TxBuf`] inner as &mut [u8].
     pub fn packet_mut(&mut self) -> &mut [u8] {
         match self {
             Self::Ixgbe(tx_buf) => tx_buf.packet_mut(),
@@ -100,12 +105,16 @@ impl<'a> TxBuf<'a> {
     }
 }
 
+/// Receive buffer enum for various network devices.
 pub enum RxBuf<'a> {
+    /// Ixgbe NIC.
     Ixgbe(RxBuffer),
+    /// Virtio-net.
     Virtio(NetBufferBox<'a>),
 }
 
 impl<'a> RxBuf<'a> {
+    /// Return [`RxBuf`] inner as &[u8].
     pub fn packet(&self) -> &[u8] {
         match self {
             Self::Ixgbe(rx_buf) => rx_buf.packet(),
@@ -113,6 +122,7 @@ impl<'a> RxBuf<'a> {
         }
     }
 
+    /// Return [`RxBuf`] inner as &mut [u8].
     pub fn packet_mut(&mut self) -> &mut [u8] {
         match self {
             Self::Ixgbe(rx_buf) => rx_buf.packet_mut(),

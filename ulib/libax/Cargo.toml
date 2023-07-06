@@ -44,8 +44,11 @@ fs = ["alloc", "axruntime/fs", "dep:axdriver", "dep:axfs"]
 use-ramdisk = ["axdriver?/ramdisk", "axfs?/use-ramdisk"]
 
 # Networking
-net = ["alloc", "axruntime/net", "dep:axdriver", "dep:axnet"]
-ixgbe_net = ["alloc", "axruntime/ixgbe_net", "axdriver?/ixgbe", "dep:axnet"]
+# virtio-net
+# net = ["alloc", "axruntime/net", "dep:axdriver", "dep:axnet"]
+# ixgbe
+net = ["alloc", "axruntime/net", "axdriver?/ixgbe", "dep:axnet"]
+# ixgbe_net = ["alloc", "axruntime/ixgbe_net", "axdriver?/ixgbe", "dep:axnet"]
 
 # Pipe
 pipe = ["alloc"]

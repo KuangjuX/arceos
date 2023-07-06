@@ -235,7 +235,7 @@ impl TcpSocket {
                     Ok(0)
                 } else if socket.can_recv() {
                     // data available
-                    // TODO: use socket.recv(|buf| {...})
+                    // TODO: use sxocket.recv(|buf| {...})
                     match socket.recv_slice(buf) {
                         Ok(len) => Ok(len),
                         Err(RecvError::Finished) => Ok(0),

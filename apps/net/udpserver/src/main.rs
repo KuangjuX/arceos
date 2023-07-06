@@ -10,7 +10,8 @@ use core::str::FromStr;
 use libax::io;
 use libax::net::{IpAddr, UdpSocket};
 
-const LOCAL_IP: &str = "10.0.2.15";
+// const LOCAL_IP: &str = "10.0.2.15";
+const LOCAL_IP: &str = "10.2.2.2";
 const LOCAL_PORT: u16 = 5555;
 
 fn receive_loop() -> io::Result {

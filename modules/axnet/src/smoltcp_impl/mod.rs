@@ -56,11 +56,6 @@ static ETH0: LazyInit<InterfaceWrapper> = LazyInit::new();
 
 struct SocketSetWrapper<'a>(Mutex<SocketSet<'a>>);
 
-// struct DeviceWrapper {
-//     inner: RefCell<AxNetDevice>, // use `RefCell` is enough since it's wrapped in `Mutex` in `InterfaceWrapper`.
-//     rx_buf_queue: VecDeque<NetBufferBox<'static>>,
-// }
-
 struct DeviceWrapper {
     // use `RefCell` is enough since it's wrapped in `Mutex` in `InterfaceWrapper`.
     inner: RefCell<AxNetDevice>,
@@ -245,9 +240,6 @@ impl Device for DeviceWrapper {
         caps
     }
 }
-
-// struct AxNetRxToken<'a>(&'a RefCell<AxNetDevice>, NetBufferBox<'static>);
-// struct AxNetTxToken<'a>(&'a RefCell<AxNetDevice>);
 
 struct AxNetRxToken<'a>(&'a RefCell<AxNetDevice>, RxBuf<'static>);
 struct AxNetTxToken<'a>(&'a RefCell<AxNetDevice>);

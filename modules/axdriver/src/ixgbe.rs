@@ -6,8 +6,8 @@ use driver_net::ixgbe::{BufferDirection, IxgbeHal, PhysAddr};
 pub struct IxgbehalImpl;
 
 unsafe impl IxgbeHal for IxgbehalImpl {
-    fn dma_alloc(pages: usize, _direction: BufferDirection) -> (PhysAddr, NonNull<u8>) {
-        let vaddr = if let Ok(vaddr) = global_allocator().alloc_pages(pages, 0x1000) {
+    fn dma_alloc(size: usize) -> (PhysAddr, NonNull<u8>) {
+        let vaddr = if let Ok(vaddr) = global_allocator().alloc(size, 2) {
             vaddr
         } else {
             return (0, NonNull::dangling());
@@ -17,8 +17,8 @@ unsafe impl IxgbeHal for IxgbehalImpl {
         (paddr.as_usize(), ptr)
     }
 
-    unsafe fn dma_dealloc(_paddr: PhysAddr, vaddr: NonNull<u8>, pages: usize) -> i32 {
-        global_allocator().dealloc_pages(vaddr.as_ptr() as usize, pages);
+    unsafe fn dma_dealloc(_paddr: PhysAddr, vaddr: NonNull<u8>, size: usize) -> i32 {
+        global_allocator().dealloc(vaddr.as_ptr() as usize, size, 2);
         0
     }
 

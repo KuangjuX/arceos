@@ -1,4 +1,9 @@
+//! Ixgbe NIC implementation in arceos.
+
+// use alloc::boxed::Box;
+use alloc::collections::VecDeque;
 use alloc::sync::Arc;
+// use alloc::vec::Vec;
 use driver_common::BaseDriverOps;
 use driver_common::DevError;
 use driver_common::DevResult;
@@ -10,6 +15,7 @@ pub use ixgbe_driver::IxgbeHal;
 use ixgbe_driver::MemPool;
 use ixgbe_driver::NicDevice;
 pub use ixgbe_driver::PhysAddr;
+use ixgbe_driver::RxBuffer;
 use ixgbe_driver::TxBuffer;
 pub use ixgbe_driver::{INTEL_82599, INTEL_VEND};
 
@@ -17,12 +23,22 @@ use crate::NetDriverOps;
 use crate::RxBuf;
 use crate::TxBuf;
 
+const RECV_BATCH_SIZE: usize = 64;
+// const SEND_BATCH_SIZE: usize = 8;
+
+/// The ixgbe NIC device driver.
+///
+/// `QS` is the ixgbe queue size.
 pub struct IxgbeNic<H: IxgbeHal, const QS: u16> {
     inner: IxgbeDevice<H>,
     mempool: Arc<MemPool>,
+    rx_buffer_queue: VecDeque<RxBuffer>,
+    // tx_buffer_queue: VecDeque<TxBuffer>,
 }
 
 impl<H: IxgbeHal, const QS: u16> IxgbeNic<H, QS> {
+    /// Creates a net ixgbe NIC instance and initialize, or returns a error if
+    /// any step fails.
     pub fn init(base: usize, len: usize) -> DevResult<Self> {
         let inner = IxgbeDevice::<H>::init(base, len, QS, QS).map_err(|err| {
             error!("Failed to initialize ixgbe device: {:?}", err);
@@ -31,7 +47,14 @@ impl<H: IxgbeHal, const QS: u16> IxgbeNic<H, QS> {
 
         // TODO: Customizable Memory Pool member.
         let mempool = MemPool::allocate::<H>(2048, 4096).unwrap();
-        Ok(Self { inner, mempool })
+        let rx_buffer_queue = VecDeque::new();
+        // let tx_buffer_queue = VecDeque::new();
+        Ok(Self {
+            inner,
+            mempool,
+            rx_buffer_queue,
+            // tx_buffer_queue,
+        })
     }
 }
 
@@ -79,13 +102,19 @@ impl<'a, H: IxgbeHal + 'static, const QS: u16> NetDriverOps<'a> for IxgbeNic<H, 
     }
 
     fn receive(&mut self) -> DevResult<RxBuf<'a>> {
-        // TODO: configurable param
-        match self.inner.receive(0) {
-            Ok(rx_buf) => Ok(RxBuf::Ixgbe(rx_buf)),
-            Err(err) => match err {
-                IxgbeError::NotReady => Err(DevError::Again),
-                _ => panic!("Unexpected err: {:?}", err),
-            },
+        if !self.rx_buffer_queue.is_empty() {
+            let rx_buf = self.rx_buffer_queue.pop_front().unwrap();
+            Ok(RxBuf::Ixgbe(rx_buf))
+        } else {
+            match self.inner.receive_packets(0, RECV_BATCH_SIZE) {
+                Ok(mut rx_bufs) => {
+                    while let Some(rx_buf) = rx_bufs.pop() {
+                        self.rx_buffer_queue.push_back(rx_buf)
+                    }
+                    Ok(RxBuf::Ixgbe(self.rx_buffer_queue.pop_front().unwrap()))
+                }
+                Err(_) => Err(DevError::Again),
+            }
         }
     }
 
@@ -100,6 +129,32 @@ impl<'a, H: IxgbeHal + 'static, const QS: u16> NetDriverOps<'a> for IxgbeNic<H, 
             },
             TxBuf::Virtio(_) => Err(DevError::BadState),
         }
+        // match buf {
+        //     TxBuf::Ixgbe(tx_buf) => {
+        //         self.tx_buffer_queue.push_back(tx_buf);
+        //         if self.tx_buffer_queue.len() >= SEND_BATCH_SIZE {
+        //             let mut tx_bufs = VecDeque::new();
+        //             for _ in 0..SEND_BATCH_SIZE {
+        //                 // TODO: recover tx_buf when transmiting fails.
+        //                 tx_bufs.push_back(self.tx_buffer_queue.pop_front().unwrap());
+        //             }
+        //             match self.inner.send_packets(0, &mut tx_bufs) {
+        //                 Ok(_) => {
+        //                     while !tx_bufs.is_empty() {
+        //                         self.tx_buffer_queue.push_front(tx_bufs.pop_back().unwrap());
+        //                     }
+        //                     return Ok(());
+        //                 }
+        //                 Err(err) => match err {
+        //                     IxgbeError::QueueFull => return Err(DevError::Again),
+        //                     _ => panic!("Unexpected err: {:?}", err),
+        //                 },
+        //             }
+        //         }
+        //         Ok(())
+        //     }
+        //     TxBuf::Virtio(_) => Err(DevError::BadState),
+        // }
     }
 
     fn alloc_tx_buffer(&self, size: usize) -> DevResult<TxBuf<'a>> {
@@ -107,3 +162,6 @@ impl<'a, H: IxgbeHal + 'static, const QS: u16> NetDriverOps<'a> for IxgbeNic<H, 
         Ok(TxBuf::Ixgbe(tx_buf))
     }
 }
+
+unsafe impl<H: IxgbeHal, const QS: u16> Sync for IxgbeNic<H, QS> {}
+unsafe impl<H: IxgbeHal, const QS: u16> Send for IxgbeNic<H, QS> {}

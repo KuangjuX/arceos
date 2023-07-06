@@ -16,9 +16,15 @@ irq = ["axhal/irq", "axtask?/irq"]
 multitask = ["alloc", "axtask/multitask"]
 smp = ["axhal/smp", "spinlock/smp"]
 
-fs = ["alloc", "paging", "axdriver/virtio-blk", "dep:axfs"] # TODO: remove "paging"
-net = ["alloc", "paging", "axdriver/virtio-net", "dep:axnet"]
-ixgbe_net = ["alloc", "paging", "axdriver/ixgbe", "dep:axnet"]
+# virtio-blk
+# fs = ["alloc", "paging", "axdriver/virtio-blk", "dep:axfs"] # TODO: remove "paging"
+# ramdisk
+fs = ["alloc", "paging", "axdriver/ramdisk", "dep:axfs"]
+
+# virtio-net
+# net = ["alloc", "paging", "axdriver/virtio-net", "dep:axnet"]
+# ixgbe 
+net = ["alloc", "paging", "axdriver/ixgbe", "dep:axnet"]
 display = ["alloc", "paging", "axdriver/virtio-gpu", "dep:axdisplay"]
 
 default = ["axtask?/default"]

@@ -108,32 +108,6 @@ impl<'a, H: Hal, T: Transport, const QS: usize> NetDriverOps<'a> for VirtIoNetDe
         Ok(())
     }
 
-    // fn transmit(&mut self, tx_buf: &NetBuffer) -> DevResult {
-    //     self.inner
-    //         .transmit_wait(tx_buf.packet_with_header())
-    //         .map_err(as_dev_err)?;
-    //     Ok(())
-    // }
-
-    // fn receive(&mut self) -> DevResult<NetBufferBox<'a>> {
-    //     if let Some(token) = self.inner.poll_receive() {
-    //         let mut rx_buf = self.rx_buffers[token as usize]
-    //             .take()
-    //             .ok_or(DevError::BadState)?;
-    //         // Safe because the buffer lives as long as the queue.
-    //         let (hdr_len, pkt_len) = unsafe {
-    //             self.inner
-    //                 .receive_complete(token, rx_buf.raw_buf_mut())
-    //                 .map_err(as_dev_err)?
-    //         };
-    //         rx_buf.set_header_len(hdr_len);
-    //         rx_buf.set_packet_len(pkt_len);
-    //         Ok(rx_buf)
-    //     } else {
-    //         Err(DevError::Again)
-    //     }
-    // }
-
     fn receive(&mut self) -> DevResult<RxBuf<'a>> {
         if let Some(token) = self.inner.poll_receive() {
             let mut rx_buf = self.rx_buffers[token as usize]
