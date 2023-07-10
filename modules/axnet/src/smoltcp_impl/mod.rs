@@ -250,7 +250,8 @@ impl<'a> RxToken for AxNetRxToken<'a> {
         F: FnOnce(&mut [u8]) -> R,
     {
         let mut rx_buf = self.1;
-        trace!(
+        assert!(rx_buf.packet().len() <= 1500);
+        info!(
             "RECV {} bytes: {:02X?}",
             rx_buf.packet().len(),
             rx_buf.packet()
@@ -269,6 +270,7 @@ impl<'a> TxToken for AxNetTxToken<'a> {
     where
         F: FnOnce(&mut [u8]) -> R,
     {
+        assert!(len <= 1500);
         let mut dev = self.0.borrow_mut();
         let mut tx_buf = match dev.alloc_tx_buffer(len) {
             Ok(tx_buf) => tx_buf,
@@ -283,7 +285,7 @@ impl<'a> TxToken for AxNetTxToken<'a> {
         };
 
         let result = f(tx_buf.packet_mut());
-        trace!("SEND {} bytes: {:02X?}", len, tx_buf.packet());
+        info!("SEND {} bytes: {:02X?}", len, tx_buf.packet());
         dev.transmit(tx_buf);
         result
     }

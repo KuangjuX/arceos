@@ -1,9 +1,7 @@
 //! Ixgbe NIC implementation in arceos.
 
-// use alloc::boxed::Box;
 use alloc::collections::VecDeque;
 use alloc::sync::Arc;
-// use alloc::vec::Vec;
 use driver_common::BaseDriverOps;
 use driver_common::DevError;
 use driver_common::DevResult;
@@ -46,7 +44,7 @@ impl<H: IxgbeHal, const QS: u16> IxgbeNic<H, QS> {
         })?;
 
         // TODO: Customizable Memory Pool member.
-        let mempool = MemPool::allocate::<H>(2048, 4096).unwrap();
+        let mempool = MemPool::allocate::<H>(2048, 0).unwrap();
         let rx_buffer_queue = VecDeque::new();
         // let tx_buffer_queue = VecDeque::new();
         Ok(Self {
@@ -129,32 +127,6 @@ impl<'a, H: IxgbeHal + 'static, const QS: u16> NetDriverOps<'a> for IxgbeNic<H, 
             },
             TxBuf::Virtio(_) => Err(DevError::BadState),
         }
-        // match buf {
-        //     TxBuf::Ixgbe(tx_buf) => {
-        //         self.tx_buffer_queue.push_back(tx_buf);
-        //         if self.tx_buffer_queue.len() >= SEND_BATCH_SIZE {
-        //             let mut tx_bufs = VecDeque::new();
-        //             for _ in 0..SEND_BATCH_SIZE {
-        //                 // TODO: recover tx_buf when transmiting fails.
-        //                 tx_bufs.push_back(self.tx_buffer_queue.pop_front().unwrap());
-        //             }
-        //             match self.inner.send_packets(0, &mut tx_bufs) {
-        //                 Ok(_) => {
-        //                     while !tx_bufs.is_empty() {
-        //                         self.tx_buffer_queue.push_front(tx_bufs.pop_back().unwrap());
-        //                     }
-        //                     return Ok(());
-        //                 }
-        //                 Err(err) => match err {
-        //                     IxgbeError::QueueFull => return Err(DevError::Again),
-        //                     _ => panic!("Unexpected err: {:?}", err),
-        //                 },
-        //             }
-        //         }
-        //         Ok(())
-        //     }
-        //     TxBuf::Virtio(_) => Err(DevError::BadState),
-        // }
     }
 
     fn alloc_tx_buffer(&self, size: usize) -> DevResult<TxBuf<'a>> {

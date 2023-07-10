@@ -10,11 +10,11 @@ repository = "https://github.com/rcore-os/arceos/tree/main/crates/driver_net"
 documentation = "https://rcore-os.github.io/arceos/driver_net/index.html"
 
 [features]
-default = ["ixgbe"]
-ixgbe = ["dep:ixgbe-driver"]
+default = []
+ixgbe = []
 
 [dependencies]
 spin = "0.9"
 log = "0.4"
 driver_common = { path = "../driver_common" }
-ixgbe-driver = { path = "../ixgbe-driver", optional = true }
+ixgbe-driver = { path = "../ixgbe-driver"}

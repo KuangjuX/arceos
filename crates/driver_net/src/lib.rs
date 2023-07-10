@@ -4,7 +4,6 @@
 #![feature(const_mut_refs)]
 #![feature(const_slice_from_raw_parts_mut)]
 
-#[cfg(feature = "ixgbe")]
 pub mod ixgbe;
 mod net_buf;
 
