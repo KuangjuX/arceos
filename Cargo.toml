@@ -49,6 +49,7 @@ members = [
     "crates/spinlock",
     "crates/timer_list",
     "crates/tuple_for_each",
+    "crates/virtio-drivers",
 
     "modules/axalloc",
     "modules/axconfig",
