@@ -7,6 +7,8 @@ use core::{
 };
 use log::warn;
 
+use crate::Error;
+
 const INVALID_READ: u32 = 0xffffffff;
 
 /// The maximum number of devices on a bus.
@@ -76,6 +78,15 @@ bitflags! {
         /// Assertion of the device's INTx# signal is disabled.
         const INTERRUPT_DISABLE = 1 << 10;
     }
+}
+
+/// PCI capabilities.
+#[repr(u8)]
+pub enum PciCapability {
+    /// MSI
+    Msi = 0x05,
+    /// MSI-X
+    Msix = 0x11,
 }
 
 /// Errors accessing a PCI device.
@@ -301,6 +312,110 @@ impl PciRoot {
             BAR0_OFFSET + 4 * (bar_index + 1),
             (address >> 32) as u32,
         );
+    }
+
+    /// Explores the PCI config space and returns address of requested capability, if present.
+    /// PCI capabilities are stored as a linked list in the PCI config space,
+    /// with each capability storing the pointer to the next capability right after its ID.
+    /// The function returns a None value if capabilities are not valid for this device
+    /// or if the requested capability is not present.
+    pub fn find_pci_capability(
+        &self,
+        device_function: DeviceFunction,
+        pci_capability: PciCapability,
+    ) -> Option<u8> {
+        let pci_capability = pci_capability as u8;
+        for capability in self.capabilities(device_function) {
+            if capability.id == pci_capability {
+                return Some(capability.offset);
+            }
+        }
+        None
+    }
+
+    /// Enable MSI interrupts for a PCI device.
+    /// We assume the device only supports one MSI vector
+    /// and set the interrupt number and core id for that vector.
+    /// If the MSI capability is not supported then an error message is returned.
+    ///
+    /// # Arguments
+    /// * `core_id`: core that interrupt will be routed to
+    /// * `int_num`: interrupt number to assign to the MSI vector
+    pub fn pci_enable_msi(
+        &mut self,
+        device_function: DeviceFunction,
+        core_id: u8,
+        int_num: u8,
+    ) -> crate::Result {
+        // find out if the device is msi capable
+        let cap_addr = self
+            .find_pci_capability(device_function, PciCapability::Msi)
+            .ok_or(Error::Unsupported)?;
+
+        // offset in the capability space where the message address register is located
+        const MESSAGE_ADDRESS_REGISTER_OFFSET: u8 = 4;
+        // the memory region is a constant defined for Intel cpus where MSI messages are written
+        // it should be written to bit 20 of the message address register
+        const MEMORY_REGION: u32 = 0x0FEE << 20;
+        // the core id tells which cpu the interrupt will be routed to
+        // it should be written to bit 12 of the message address register
+        let core = (core_id as u32) << 12;
+
+        // set the core the MSI will be sent to in the Message Address Register (Intel Arch SDM, vol3, 10.11)
+        self.config_write_word(
+            device_function,
+            cap_addr + MESSAGE_ADDRESS_REGISTER_OFFSET,
+            MEMORY_REGION | core,
+        );
+
+        // offset in the capability space where the message data register is located
+        const MESSAGE_DATA_REGISTER_OFFSET: u8 = 12;
+        // Set the interrupt number for the MSI in the Message Data Register
+        self.config_write_word(
+            device_function,
+            cap_addr + MESSAGE_DATA_REGISTER_OFFSET,
+            int_num as u32,
+        );
+
+        // offset in the capability space where the message control register is located
+        const MESSAGE_CONTROL_REGISTER_OFFSET: u8 = 2;
+        // to enable the MSI capability, we need to set it bit 0 of the message control register
+        const MSI_ENABLE: u32 = 1;
+        let ctrl =
+            self.config_read_word(device_function, cap_addr + MESSAGE_CONTROL_REGISTER_OFFSET);
+        // enable MSI in the Message Control Register
+        self.config_write_word(
+            device_function,
+            cap_addr + MESSAGE_CONTROL_REGISTER_OFFSET,
+            ctrl | MSI_ENABLE,
+        );
+
+        Ok(())
+    }
+
+    /// Enable MSI-X interrupts for a PCI device.
+    /// Only the enable bit is set and the remaining initialization steps of
+    /// setting the interrupt number and core id should be completed in the device driver.
+    pub fn pci_enable_msix(&mut self, device_function: DeviceFunction) -> crate::Result {
+        // find out if the device is MSI-X capable.
+        let cap_addr = self
+            .find_pci_capability(device_function, PciCapability::Msix)
+            .ok_or(Error::Unsupported)?;
+        // offset in the capability space where the message control register is located
+        const MESSAGE_CONTROL_REGISTER_OFFSET: u8 = 2;
+
+        let ctrl =
+            self.config_read_word(device_function, cap_addr + MESSAGE_CONTROL_REGISTER_OFFSET);
+
+        // write to bit 15 of Message Control Register to enable MSI-X
+        const MSIX_ENABLE: u32 = 1 << 15;
+        self.config_write_word(
+            device_function,
+            cap_addr + MESSAGE_CONTROL_REGISTER_OFFSET,
+            ctrl | MSIX_ENABLE,
+        );
+
+        Ok(())
     }
 
     /// Gets the capabilities 'pointer' for the device function, if any.
