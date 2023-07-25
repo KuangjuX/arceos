@@ -7,7 +7,7 @@ use core::{
 };
 use log::warn;
 
-use crate::Error;
+use crate::transport::pci::msix::MsixVectorTable;
 
 const INVALID_READ: u32 = 0xffffffff;
 
@@ -94,12 +94,18 @@ pub enum PciCapability {
 pub enum PciError {
     /// The device reported an invalid BAR type.
     InvalidBarType,
+    /// The request was not supported by the device.
+    Unsupported,
+    /// Bad state.
+    BadState,
 }
 
 impl Display for PciError {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
             Self::InvalidBarType => write!(f, "Invalid PCI BAR type."),
+            Self::Unsupported => write!(f, "Unsupported PCI request."),
+            Self::BadState => write!(f, "Bad PCI state."),
         }
     }
 }
@@ -346,11 +352,11 @@ impl PciRoot {
         device_function: DeviceFunction,
         core_id: u8,
         int_num: u8,
-    ) -> crate::Result {
+    ) -> Result<(), PciError> {
         // find out if the device is msi capable
         let cap_addr = self
             .find_pci_capability(device_function, PciCapability::Msi)
-            .ok_or(Error::Unsupported)?;
+            .ok_or(PciError::Unsupported)?;
 
         // offset in the capability space where the message address register is located
         const MESSAGE_ADDRESS_REGISTER_OFFSET: u8 = 4;
@@ -396,11 +402,11 @@ impl PciRoot {
     /// Enable MSI-X interrupts for a PCI device.
     /// Only the enable bit is set and the remaining initialization steps of
     /// setting the interrupt number and core id should be completed in the device driver.
-    pub fn pci_enable_msix(&mut self, device_function: DeviceFunction) -> crate::Result {
+    pub fn pci_enable_msix(&mut self, device_function: DeviceFunction) -> Result<(), PciError> {
         // find out if the device is MSI-X capable.
         let cap_addr = self
             .find_pci_capability(device_function, PciCapability::Msix)
-            .ok_or(Error::Unsupported)?;
+            .ok_or(PciError::Unsupported)?;
         // offset in the capability space where the message control register is located
         const MESSAGE_CONTROL_REGISTER_OFFSET: u8 = 2;
 
@@ -416,6 +422,47 @@ impl PciRoot {
         );
 
         Ok(())
+    }
+
+    /// Returns the memory mapped msix vector table
+    ///
+    /// - returns `Err("Device not MSI-X capable")` if the device doesn't have the MSI-X capability
+    /// - returns `Err("Invalid BAR content")` if the Base Address Register contains an invalid address
+    pub fn pci_mem_map_msix<F>(
+        &mut self,
+        device_function: DeviceFunction,
+        max_vectors: usize,
+        phys_to_virt: F,
+    ) -> Result<MsixVectorTable, PciError>
+    where
+        F: FnOnce(usize) -> usize,
+    {
+        // retreive the address in the pci config space for the msi-x capability
+        let cap_addr = self
+            .find_pci_capability(device_function, PciCapability::Msix)
+            .ok_or(PciError::Unsupported)?;
+        // find the BAR used for msi-x
+        let vector_table_offset = 4;
+        let table_offset = self.config_read_word(device_function, cap_addr + vector_table_offset);
+        let bar_index = (table_offset & 0x7) as u8;
+        let offset = table_offset >> 3;
+
+        log::info!(
+            "MSI-X vector table offset: {:#x}, BAR index: {}, offset: {:#x}",
+            table_offset,
+            bar_index,
+            offset
+        );
+        let bar_info = self.bar_info(device_function, bar_index)?;
+        match bar_info {
+            // find the memory base address and size of the area for the vector table
+            BarInfo::Memory { address, .. } => {
+                let virt_addr = phys_to_virt((address + offset as u64) as usize);
+                let vector_table = MsixVectorTable::new(virt_addr, max_vectors);
+                Ok(vector_table)
+            }
+            _ => Err(PciError::BadState),
+        }
     }
 
     /// Gets the capabilities 'pointer' for the device function, if any.

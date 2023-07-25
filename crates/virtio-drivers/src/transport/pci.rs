@@ -1,6 +1,7 @@
 //! PCI transport for VirtIO.
 
 pub mod bus;
+pub mod msix;
 
 use self::bus::{DeviceFunction, DeviceFunctionInfo, PciError, PciRoot, PCI_CAP_ID_VNDR};
 use super::{DeviceStatus, DeviceType, Transport};
