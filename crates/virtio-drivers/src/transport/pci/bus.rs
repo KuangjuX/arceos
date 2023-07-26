@@ -186,7 +186,7 @@ impl PciRoot {
         // Ensure that address is within range.
         assert!(address < self.cam.size());
         // Ensure that address is word-aligned.
-        assert!(address & 0x3 == 0);
+        // assert!(address & 0x3 == 0);
         address
     }
 
@@ -197,12 +197,32 @@ impl PciRoot {
         register_offset: u8,
     ) -> u32 {
         let address = self.cam_offset(device_function, register_offset);
+        assert!(address & 0x3 == 0);
         // Safe because both the `mmio_base` and the address offset are properly aligned, and the
         // resulting pointer is within the MMIO range of the CAM.
         unsafe {
             // Right shift to convert from byte offset to word offset.
             (self.mmio_base.add((address >> 2) as usize)).read_volatile()
         }
+    }
+
+    pub(crate) fn config_read_16(
+        &self,
+        device_function: DeviceFunction,
+        register_offset: u8,
+    ) -> u16 {
+        let address = self.cam_offset(device_function, register_offset);
+        assert!(address & 0x1 == 0);
+
+        let mmio_base = self.mmio_base as *mut u16;
+        unsafe { (mmio_base.add((address >> 1) as usize)).read_volatile() }
+    }
+
+    pub(crate) fn config_read_8(&self, device_function: DeviceFunction, register_offset: u8) -> u8 {
+        let address = self.cam_offset(device_function, register_offset);
+
+        let mmio_base = self.mmio_base as *mut u8;
+        unsafe { (mmio_base.add(address as usize)).read_volatile() }
     }
 
     /// Writes 4 bytes to configuration space using the appropriate CAM.
@@ -213,12 +233,38 @@ impl PciRoot {
         data: u32,
     ) {
         let address = self.cam_offset(device_function, register_offset);
+        assert!(address & 0x3 == 0);
         // Safe because both the `mmio_base` and the address offset are properly aligned, and the
         // resulting pointer is within the MMIO range of the CAM.
         unsafe {
             // Right shift to convert from byte offset to word offset.
             (self.mmio_base.add((address >> 2) as usize)).write_volatile(data)
         }
+    }
+
+    pub(crate) fn config_write_16(
+        &mut self,
+        device_function: DeviceFunction,
+        register_offset: u8,
+        data: u16,
+    ) {
+        let address = self.cam_offset(device_function, register_offset);
+        assert!(address & 0x1 == 0);
+
+        let mmio_base = self.mmio_base as *mut u16;
+        unsafe { (mmio_base.add((address >> 1) as usize)).write_volatile(data) }
+    }
+
+    pub(crate) fn config_write_8(
+        &mut self,
+        device_function: DeviceFunction,
+        register_offset: u8,
+        data: u8,
+    ) {
+        let address = self.cam_offset(device_function, register_offset);
+
+        let mmio_base = self.mmio_base as *mut u8;
+        unsafe { (mmio_base.add(address as usize)).write_volatile(data) }
     }
 
     /// Enumerates PCI devices on the given bus.
@@ -412,17 +458,18 @@ impl PciRoot {
         // offset in the capability space where the message control register is located
         const MESSAGE_CONTROL_REGISTER_OFFSET: u8 = 2;
 
-        let ctrl =
-            self.config_read_word(device_function, cap_addr + MESSAGE_CONTROL_REGISTER_OFFSET);
+        let ctrl = self.config_read_16(device_function, cap_addr + MESSAGE_CONTROL_REGISTER_OFFSET);
+
+        info!("MSI-X control register: {:#x}", ctrl);
 
         // write to bit 15 of Message Control Register to enable MSI-X
-        const MSIX_ENABLE: u32 = 1 << 15;
-        self.config_write_word(
+        const MSIX_ENABLE: u16 = 1 << 15;
+        self.config_write_16(
             device_function,
             cap_addr + MESSAGE_CONTROL_REGISTER_OFFSET,
             ctrl | MSIX_ENABLE,
         );
-
+        info!("PCI enable MSI-X");
         Ok(())
     }
 

@@ -1,7 +1,7 @@
 use core::ptr::NonNull;
 
 use axalloc::global_allocator;
-use axhal::irq::alloc_and_register_handler;
+// use axhal::irq::alloc_and_register_handler;
 use axhal::mem::{phys_to_virt, virt_to_phys};
 use driver_net::ixgbe::{IxgbeHal, PhysAddr as IxgbePhysAddr};
 
@@ -79,10 +79,10 @@ pub fn pci_probe_ixgbe(
                 )
                 .expect("failed to initialize ixgbe device");
 
-                // Initialize msi vectors
-                let msi_int_num =
-                    alloc_and_register_handler(|| todo!("ixgbe: msi interrupt handler"))?;
-                vector_table[0].init(0, msi_int_num);
+                // // Initialize msi vectors
+                // let msi_int_num =
+                //     alloc_and_register_handler(|| todo!("ixgbe: msi interrupt handler"))?;
+                // vector_table[0].init(0, msi_int_num);
                 return Some(ixgbe_nic);
             }
             driver_pci::BarInfo::IO { .. } => {
