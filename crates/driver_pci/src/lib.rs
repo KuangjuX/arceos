@@ -12,6 +12,7 @@ pub use virtio_drivers::transport::pci::bus::{BarInfo, Cam, HeaderType, MemoryBa
 pub use virtio_drivers::transport::pci::bus::{
     CapabilityInfo, Command, DeviceFunction, DeviceFunctionInfo, PciRoot, Status,
 };
+pub use virtio_drivers::transport::pci::msix::{MsixVectorEntry, MsixVectorTable};
 
 /// Used to allocate MMIO regions for PCI BARs.
 pub struct PciRangeAllocator {

@@ -5,7 +5,7 @@ use core::{
     convert::TryFrom,
     fmt::{self, Display, Formatter},
 };
-use log::warn;
+use log::{info, warn};
 
 use crate::transport::pci::msix::MsixVectorTable;
 
@@ -407,6 +407,8 @@ impl PciRoot {
         let cap_addr = self
             .find_pci_capability(device_function, PciCapability::Msix)
             .ok_or(PciError::Unsupported)?;
+
+        info!("MSI-X capability found at {:#x}", cap_addr);
         // offset in the capability space where the message control register is located
         const MESSAGE_CONTROL_REGISTER_OFFSET: u8 = 2;
 
@@ -426,8 +428,16 @@ impl PciRoot {
 
     /// Returns the memory mapped msix vector table
     ///
-    /// - returns `Err("Device not MSI-X capable")` if the device doesn't have the MSI-X capability
-    /// - returns `Err("Invalid BAR content")` if the Base Address Register contains an invalid address
+    /// ### MSI-X
+    /// ------------------------------------------------------------------------------------------------
+    /// | Register |    Offset  | Bits 31-24   | Bits 23-16 | Bits 15-8    | Bits 7-3 | Bits 2-0        |
+    /// -------------------------------------------------------------------------------------------------
+    /// | Cap + 0x0 | Cap + 0x0 |      Message Control      | Next Pointer | Capability ID = 11         |
+    /// -------------------------------------------------------------------------------------------------
+    /// | Cap + 0x1 | Cap + 0x4 | Table Offset                                        | BIR             |
+    /// -------------------------------------------------------------------------------------------------
+    /// | Cap + 0x2 | Cap + 0x8 | Pending Bit Offset                                  | Pending Bit BIR |
+    /// ------------------------------------------------------------------------------------------------
     pub fn pci_mem_map_msix<F>(
         &mut self,
         device_function: DeviceFunction,
@@ -441,12 +451,14 @@ impl PciRoot {
         let cap_addr = self
             .find_pci_capability(device_function, PciCapability::Msix)
             .ok_or(PciError::Unsupported)?;
+        info!("MSI-X capability found at {:#x}", cap_addr);
         // find the BAR used for msi-x
         let vector_table_offset = 4;
+        // Table Offset is an offset into that BAR where the Message Table lives.
+        // Note that it is 8-byte aligned.
         let table_offset = self.config_read_word(device_function, cap_addr + vector_table_offset);
         let bar_index = (table_offset & 0x7) as u8;
         let offset = table_offset >> 3;
-
         log::info!(
             "MSI-X vector table offset: {:#x}, BAR index: {}, offset: {:#x}",
             table_offset,
@@ -457,8 +469,13 @@ impl PciRoot {
         match bar_info {
             // find the memory base address and size of the area for the vector table
             BarInfo::Memory { address, .. } => {
-                let virt_addr = phys_to_virt((address + offset as u64) as usize);
-                let vector_table = MsixVectorTable::new(virt_addr, max_vectors);
+                let vector_paddr = (address + offset as u64) as usize;
+                let vector_vaddr = phys_to_virt(vector_paddr);
+                info!(
+                    "MSI-X vector table physical address: {:#x}, virtial address: {:#x}",
+                    vector_paddr, vector_vaddr
+                );
+                let vector_table = MsixVectorTable::new(vector_vaddr, max_vectors);
                 Ok(vector_table)
             }
             _ => Err(PciError::BadState),

@@ -1,5 +1,6 @@
 //! MSI-X support for PCI devices.
 
+use core::ops::{Deref, DerefMut};
 use core::ptr::NonNull;
 
 use alloc::boxed::Box;
@@ -19,6 +20,19 @@ const MSIX_UNMASK_INT: u32 = 0;
 /// A memory-mapped array of [`MsixVectorEntry`]
 pub struct MsixVectorTable {
     entries: Box<[MsixVectorEntry]>,
+}
+
+impl Deref for MsixVectorTable {
+    type Target = [MsixVectorEntry];
+    fn deref(&self) -> &Self::Target {
+        &self.entries
+    }
+}
+
+impl DerefMut for MsixVectorTable {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.entries
+    }
 }
 
 impl MsixVectorTable {

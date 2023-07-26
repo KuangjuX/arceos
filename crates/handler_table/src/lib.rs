@@ -46,4 +46,15 @@ impl<const N: usize> HandlerTable<N> {
             false
         }
     }
+
+    /// Allocates an unused interrupt number for the given handler.
+    pub fn allocate_irq_num(&self) -> Option<usize> {
+        for irq in 32..N {
+            let handler = self.handlers[irq].load(Ordering::Acquire);
+            if handler == 0 {
+                return Some(irq);
+            }
+        }
+        None
+    }
 }

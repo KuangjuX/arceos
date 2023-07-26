@@ -1,7 +1,15 @@
-use axalloc::global_allocator;
-use axhal::mem::{phys_to_virt, virt_to_phys};
 use core::ptr::NonNull;
+
+use axalloc::global_allocator;
+use axhal::irq::alloc_and_register_handler;
+use axhal::mem::{phys_to_virt, virt_to_phys};
 use driver_net::ixgbe::{IxgbeHal, PhysAddr as IxgbePhysAddr};
+
+use crate::AxNetDevice;
+
+/// The number of msi-x vectors this device can have.
+/// It can be set from PCI space, but we took the value from the data sheet.
+pub const IXGBE_MAX_MSIX_VECTORS: usize = 64;
 
 pub struct IxgbeHalImpl;
 
@@ -34,4 +42,54 @@ unsafe impl IxgbeHal for IxgbeHalImpl {
         axhal::time::busy_wait_until(duration);
         Ok(())
     }
+}
+
+pub fn pci_probe_ixgbe(
+    pci_root: &mut driver_pci::PciRoot,
+    dev_func: driver_pci::DeviceFunction,
+    dev_info: &driver_pci::DeviceFunctionInfo,
+) -> Option<AxNetDevice> {
+    use driver_net::ixgbe::{IxgbeNic, INTEL_82599, INTEL_VEND};
+    if dev_info.vendor_id == INTEL_VEND && dev_info.device_id == INTEL_82599 {
+        // Intel 10Gb Network
+        info!("ixgbe PCI device found at {:?}", dev_func);
+
+        // Initialize the device
+        // These can be changed according to the requirments specified in the ixgbe init function.
+        const QN: u16 = 1;
+        const QS: usize = 1024;
+        let bar_info = pci_root.bar_info(dev_func, 0).unwrap();
+        match bar_info {
+            driver_pci::BarInfo::Memory { address, size, .. } => {
+                // map the msi-x vector table to an address found from the pci space.
+                let mut vector_table = pci_root
+                    .pci_mem_map_msix(
+                        dev_func,
+                        IXGBE_MAX_MSIX_VECTORS,
+                        |phys_addr: usize| -> usize { phys_to_virt(phys_addr.into()).into() },
+                    )
+                    .ok()?;
+                // enable msi-x interrupts if required and return the assigned interrupt number.
+                pci_root.pci_enable_msix(dev_func).ok()?;
+
+                // ixgbe enable initialize & enable msi-x interrupts.
+                let ixgbe_nic = IxgbeNic::<IxgbeHalImpl, QS, QN>::init(
+                    phys_to_virt((address as usize).into()).into(),
+                    size as usize,
+                )
+                .expect("failed to initialize ixgbe device");
+
+                // Initialize msi vectors
+                let msi_int_num =
+                    alloc_and_register_handler(|| todo!("ixgbe: msi interrupt handler"))?;
+                vector_table[0].init(0, msi_int_num);
+                return Some(ixgbe_nic);
+            }
+            driver_pci::BarInfo::IO { .. } => {
+                error!("ixgbe: BAR0 is of I/O type");
+                return None;
+            }
+        }
+    }
+    None
 }

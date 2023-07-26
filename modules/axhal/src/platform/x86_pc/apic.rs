@@ -52,6 +52,20 @@ pub fn register_handler(vector: usize, handler: crate::irq::IrqHandler) -> bool 
     crate::irq::register_handler_common(vector, handler)
 }
 
+/// Allocates and returns an unused interrupt number and sets its handler function.
+///
+/// Returns `None` if no interrupt number is available or registration failed.
+#[cfg(feature = "irq")]
+pub fn register_msi_handler(handler: crate::irq::IrqHandler) -> Option<usize> {
+    if let Some(irq_num) = crate::irq::IRQ_HANDLER_TABLE.allocate_irq_num() {
+        if register_handler(irq_num, handler) {
+            return Some(irq_num);
+        }
+        return None;
+    }
+    None
+}
+
 /// Dispatches the IRQ.
 ///
 /// This function is called by the common interrupt handler. It looks

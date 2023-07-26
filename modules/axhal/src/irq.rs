@@ -33,3 +33,14 @@ pub(crate) fn register_handler_common(irq_num: usize, handler: IrqHandler) -> bo
     warn!("register handler for IRQ {} failed", irq_num);
     false
 }
+
+/// Allocates and returns an unused interrupt number and sets its handler function.
+pub fn alloc_and_register_handler(handler: IrqHandler) -> Option<u8> {
+    if let Some(irq_num) = crate::irq::IRQ_HANDLER_TABLE.allocate_irq_num() {
+        if register_handler(irq_num, handler) {
+            return Some(irq_num as u8);
+        }
+        return None;
+    }
+    None
+}
