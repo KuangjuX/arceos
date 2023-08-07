@@ -17,6 +17,8 @@ net = ["driver_net"]
 block = ["driver_block"]
 display = ["driver_display"]
 
+irq = []
+
 # Enabled by features `virtio-*`
 virtio = ["driver_virtio", "dep:axalloc", "dep:axhal", "dep:axconfig"]
 
@@ -25,7 +27,7 @@ virtio-blk = ["block", "virtio", "driver_virtio/block"]
 virtio-net = ["net", "virtio", "driver_virtio/net"]
 virtio-gpu = ["display", "virtio", "driver_virtio/gpu"]
 ramdisk = ["block", "driver_block/ramdisk"]
-ixgbe = ["net", "driver_net/ixgbe", "dep:axalloc", "dep:axhal"]
+ixgbe = ["net", "driver_net/ixgbe", "dep:axalloc", "dep:axhal", "irq"]
 # more devices example: e1000 = ["net", "driver_net/e1000"]
 
 default = ["bus-mmio"]

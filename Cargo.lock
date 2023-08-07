@@ -959,7 +959,7 @@ checksum = "af150ab688ff2122fcef229be89cb50dd66af9e01a4ff320cc137eecc9bacc38"
 [[package]]
 name = "ixgbe-driver"
 version = "0.1.0"
-source = "git+https://github.com/KuangjuX/ixgbe-driver.git?rev=8e5eb74#8e5eb741299d7d95c373ec745e39a1473fe84563"
+source = "git+https://github.com/KuangjuX/ixgbe-driver.git?rev=5ffd925#5ffd925e4ddc14851f5947ecac9bffcd5f078480"
 dependencies = [
  "bit_field",
  "core_detect",

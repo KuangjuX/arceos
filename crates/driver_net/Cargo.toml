@@ -17,4 +17,4 @@ ixgbe = ["dep:ixgbe-driver"]
 spin = "0.9"
 log = "0.4"
 driver_common = { path = "../driver_common" }
-ixgbe-driver = {git = "https://github.com/KuangjuX/ixgbe-driver.git", rev = "8e5eb74", optional = true}
+ixgbe-driver = {git = "https://github.com/KuangjuX/ixgbe-driver.git", rev = "5ffd925", optional = true, features = ["irq"]}

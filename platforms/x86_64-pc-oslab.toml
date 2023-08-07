@@ -23,6 +23,7 @@ mmio-regions = [
     ["0xfee0_0000", "0x1000"],      # Local APIC
     ["0xf000_0000", "0x0800_0000"], # PCI config space
     ["0xfcd8_0000", "0x0008_0000"], # Ixgbe BAR0
+    ["0xfce0_0000", "0x0010_0000"]
 ]
 # VirtIO MMIO regions with format (`base_paddr`, `size`).
 virtio-mmio-regions = []
